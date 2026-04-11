@@ -5,7 +5,8 @@ export const WASM_FALLBACK_JOINT_INDICES = {
   leftArm: [15, 16, 17, 18, 19, 20, 21],
   rightArm: [22, 23, 24, 25, 26, 27, 28],
   torso: [12, 13, 14],
-  legs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  leftLeg: [0, 1, 2, 3, 4, 5],
+  rightLeg: [6, 7, 8, 9, 10, 11],
 } as const;
 
 /** `GET /api/joints`-shaped joint_map when the API is offline (indices → skill keys). */

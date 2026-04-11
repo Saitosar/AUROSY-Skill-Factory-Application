@@ -364,7 +364,7 @@
     "lead": "Here you can easily configure and save poses and create movements.",
     "placeholderBanner": "The diagram under <c1></c1> is a placeholder until §1.4 assets from <c2></c1> (backend repo) are copied in.",
     "wasmViewerAria": "3D pose preview",
-    "jointsPanelAria": "Joints by group",
+    "jointsPanelTitle": "Joints by group",
     "allGroups": "All groups",
     "wasmLoading": "Loading MuJoCo…",
     "wasmSlidersHint": "After the scene loads, use sliders or the numeric field; angles are in degrees.",
@@ -388,7 +388,8 @@
       "leftArm": "Left arm",
       "rightArm": "Right arm",
       "torso": "Torso",
-      "legs": "Legs"
+      "leftLeg": "Left leg",
+      "rightLeg": "Right leg"
     },
     "jointLabels": {
       "left_hip_pitch": "Hip pitch",

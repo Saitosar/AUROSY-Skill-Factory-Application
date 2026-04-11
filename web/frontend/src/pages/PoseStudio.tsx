@@ -192,7 +192,8 @@ export default function PoseStudio() {
       { name: t("pose.fallbackGroups.leftArm"), indices: [...WASM_FALLBACK_JOINT_INDICES.leftArm] },
       { name: t("pose.fallbackGroups.rightArm"), indices: [...WASM_FALLBACK_JOINT_INDICES.rightArm] },
       { name: t("pose.fallbackGroups.torso"), indices: [...WASM_FALLBACK_JOINT_INDICES.torso] },
-      { name: t("pose.fallbackGroups.legs"), indices: [...WASM_FALLBACK_JOINT_INDICES.legs] },
+      { name: t("pose.fallbackGroups.leftLeg"), indices: [...WASM_FALLBACK_JOINT_INDICES.leftLeg] },
+      { name: t("pose.fallbackGroups.rightLeg"), indices: [...WASM_FALLBACK_JOINT_INDICES.rightLeg] },
     ],
     [t]
   );
@@ -254,7 +255,13 @@ export default function PoseStudio() {
         </section>
 
         <div className="pose-studio-sidebar">
-          <aside className="pose-studio-panel panel" aria-label={t("pose.jointsPanelAria")}>
+          <aside
+            className="pose-studio-panel panel"
+            aria-labelledby="pose-studio-joints-heading"
+          >
+            <h2 id="pose-studio-joints-heading" className="pose-studio-panel-heading">
+              {t("pose.jointsPanelTitle")}
+            </h2>
             {!wasmReady && !wasmViewerError && <p className="muted">{t("pose.wasmSlidersHint")}</p>}
             {filteredGroups.map((g) => (
               <div key={g.name} style={{ marginBottom: 24 }}>
