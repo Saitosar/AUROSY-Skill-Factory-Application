@@ -601,14 +601,14 @@
         <h2 id="user-value-heading">Ценность для пользователей</h2>
         <div class="summary-box">
           <strong>Коротко</strong>
-          <p>Инженеры и продвинутые операторы получают контроль над JSON Phase 0, позой, сценарием и конвейером в одном месте, с понятной обратной связью (валидация, логи, статусы задач, телеметрия).</p>
+          <p>Инженеры и продвинутые операторы получают контроль над JSON Phase 0, позой, сценарием и конвейером в одном месте, с понятной обратной связью (валидация, логи, статусы задач, режим телеметрии на бэкенде на Главной).</p>
         </div>
         <ul>
           <li>Редактирование и проверка <code>keyframes</code>, <code>motion</code>, <code>scenario</code> с серверной валидацией.</li>
-          <li>Pose Studio: визуал и управление углами суставов, согласованное с телеметрией.</li>
+          <li>Pose Studio: 2D-схема, MuJoCo WASM на вкладке 3D; углы задаются локально в браузере (не из live WebSocket в текущей сборке).</li>
           <li>Конструктор сценариев из mid-level действий с оценкой длительности и предупреждениями (целевое окно ~30 с).</li>
           <li>Конвейер с логами preprocess / playback / train; перенос данных в форму задач платформы без «магического» автозапуска очереди.</li>
-          <li>Телеметрия в реальном времени по WebSocket.</li>
+          <li>На бэкенде — поток <code>/ws/telemetry</code> для интеграций; на Главной при доступном API показывается <code>telemetry_mode</code> из <code>GET /api/meta</code>.</li>
           <li>Локализация RU/EN, справка и FAQ в приложении.</li>
         </ul>
         <details class="for-po-detail">
@@ -638,7 +638,7 @@
           <li><strong>Фрагментированный toolchain.</strong> Сложно помнить порядок вызовов и где смотреть логи; конвейер в UI даёт единую точку запуска и отображения результата.</li>
           <li><strong>Сложность Phase 0.</strong> JSON-схемы и единицы измерения требуют проверки; серверная валидация и подсказки снижают число «тихих» ошибок.</li>
           <li><strong>Связка симуляции и обучения.</strong> Пользователю нужен предсказуемый путь от preprocess к train — и отдельно возможность вынести долгие задачи в очередь платформы.</li>
-          <li><strong>Наблюдаемость.</strong> Телеметрия суставов в одном окне с Pose Studio упрощает сопоставление «задали / фактически».</li>
+          <li><strong>Наблюдаемость.</strong> Режим телеметрии на сервере виден на Главной; контракт WebSocket остаётся на стороне API для интеграций и робота.</li>
         </ul>
       </section>
 
@@ -646,20 +646,20 @@
         <h2 id="user-journey-heading">Путь пользователя</h2>
         <div class="summary-box">
           <strong>Коротко</strong>
-          <p>Старт с главной: проверка связи с API и выбор направления — авторинг и сценарии, поза, конвейер или платформа (задачи и пакеты). В конце цепочки — при необходимости телеметрия; настройки и справка доступны в любой момент.</p>
+          <p>Старт с главной: проверка связи с API и выбор направления — авторинг и сценарии, поза, конвейер или платформа (задачи и пакеты). Настройки и справка доступны в любой момент.</p>
         </div>
         <h3>Информационная архитектура (сайдбар)</h3>
-        <p>Порядок разделов в приложении: <strong>Главная</strong> → <strong>Авторинг</strong> → <strong>Pose Studio</strong> → <strong>Сценарии</strong> → <strong>Конвейер</strong> → группа <strong>Платформа (Phase 5): Задачи, Пакеты</strong> → <strong>Телеметрия</strong> → <strong>Справка</strong> → <strong>Настройки</strong>.</p>
+        <p>Порядок разделов в сайдбаре: <strong>Главная</strong> → <strong>Авторинг</strong> → <strong>Pose Studio</strong> → <strong>Сценарии</strong> → <strong>Конвейер</strong> → группа <strong>Платформа (Phase 5): Задачи, Пакеты</strong> → <strong>Справка</strong> → <strong>Настройки</strong>. Старый URL <code>/telemetry</code> редиректит на <code>/pose</code>.</p>
         <h3>Типовые маршруты</h3>
         <ol class="flow-steps">
           <li><strong>Главная (<code>/</code>).</strong> Статус API, кратко метаданные (<code>telemetry_mode</code> и др.), блок «два пути к train», шорткаты в разделы.</li>
           <li><strong>Авторинг (<code>/authoring</code>).</strong> Редактирование JSON, валидация.</li>
-          <li><strong>Pose Studio (<code>/pose</code>).</strong> Визуал и суставы; при DDS-телеметрии — предупреждение в UI (рекомендации в FAQ/справке).</li>
+          <li><strong>Pose Studio (<code>/pose</code>).</strong> 2D-схема и вкладка WASM (MuJoCo в браузере); имена суставов — <code>GET /api/joints</code>.</li>
           <li><strong>Сценарии (<code>/scenarios</code>).</strong> Каталог действий, сборка нод, оценка длительности.</li>
           <li><strong>Конвейер (<code>/pipeline</code>).</strong> Preprocess, playback, train; перенос reference в задачи платформы при необходимости.</li>
           <li><strong>Задачи (<code>/jobs</code>, <code>/jobs/:jobId</code>).</strong> Артефакты, постановка train, мониторинг.</li>
           <li><strong>Пакеты (<code>/packages</code>).</strong> Skill Bundle: список, скачивание, загрузка, публикация.</li>
-          <li><strong>Телеметрия (<code>/telemetry</code>).</strong> Подписка на поток состояния.</li>
+          <li><strong>Маршрут <code>/telemetry</code>.</strong> Редирект на Pose Studio (совместимость закладок); отдельного экрана live-потока WS во фронте нет.</li>
           <li><strong>Справка (<code>/help</code>) и Настройки (<code>/settings</code>).</strong> FAQ, язык, базовый URL API, идентификатор платформы.</li>
         </ol>
         <details class="for-po-detail">
@@ -685,40 +685,36 @@ featPose["Pose"]
 featScenario["Сценарии"]
 featPipeline["Конвейер"]
 featJobs["Задачи Phase5"]
-featTelem["Телеметрия"]
 state["Черновики"]
 routes --> featAuthoring
 routes --> featPose
 routes --> featScenario
 routes --> featPipeline
 routes --> featJobs
-routes --> featTelem
 featAuthoring --> state
 featScenario --> state
 end
 subgraph clients["Клиенты"]
 rest["REST"]
-ws["WebSocket"]
 end
 subgraph backend["FastAPI"]
 api["REST API"]
-wss["WS"]
+wss["WS telemetry"]
 cli["CLI мост"]
 end
 featAuthoring --> rest
 featScenario --> rest
 featPipeline --> rest
 featJobs --> rest
-featTelem --> ws
 featPose --> rest
 rest --> api
-ws --> wss
-api --> cli</div>
-          <p class="mermaid-fallback" id="mermaidFallback" hidden>Браузер: модули (авторинг, поза, сценарии, конвейер, задачи, телеметрия) → REST и WebSocket → FastAPI (REST, WS, вызов CLI). Локальные черновики JSON — в браузере; валидация Phase 0 и запуск процессов — на сервере.</p>
+api --> cli
+api --> wss</div>
+          <p class="mermaid-fallback" id="mermaidFallback" hidden>Браузер: модули (авторинг, поза, сценарии, конвейер, задачи) → REST → FastAPI; эндпоинт WebSocket телеметрии на бэкенде без отдельного экрана во фронте. Локальные черновики JSON — в браузере; валидация Phase 0 и запуск процессов — на сервере.</p>
         </div>
         <ul>
           <li><strong>REST:</strong> единая обёртка над <code>fetch</code>, базовый URL из env или прокси Vite в разработке.</li>
-          <li><strong>WebSocket:</strong> <code>/ws/telemetry</code>, по одному JSON-событию на сообщение.</li>
+          <li><strong>WebSocket:</strong> на бэкенде <code>/ws/telemetry</code> (по одному JSON-событию на сообщение); клиентский хук во фронтенде есть, к экранам не подключён.</li>
           <li><strong>Состояние:</strong> черновики авторинга, ноды сценария, флаги UI; персистентность на диск опциональна в будущем.</li>
         </ul>
       </section>
@@ -747,8 +743,8 @@ api --> cli</div>
             </tr>
             <tr>
               <td><strong>Pose / visualization</strong></td>
-              <td>Визуальный контроль позы робота рядом с управлением углами.</td>
-              <td><code>GET /api/joints</code>; опционально сопоставление с телеметрией</td>
+              <td>2D-схема и MuJoCo WASM; управление углами локально в браузере.</td>
+              <td><code>GET /api/joints</code></td>
             </tr>
             <tr>
               <td><strong>Scenario builder</strong></td>
@@ -766,8 +762,8 @@ api --> cli</div>
               <td><code>POST /api/platform/artifacts/{name}</code>, <code>POST /api/jobs/train</code>, <code>GET /api/jobs</code>, <code>GET /api/jobs/{job_id}</code></td>
             </tr>
             <tr>
-              <td><strong>Telemetry</strong></td>
-              <td>Живое отображение состояния суставов.</td>
+              <td><strong>Telemetry (API)</strong></td>
+              <td>Поток состояния на бэкенде; во фронте отдельный экран не смонтирован.</td>
               <td>WebSocket <code>/ws/telemetry</code></td>
             </tr>
           </tbody>
@@ -787,7 +783,7 @@ api --> cli</div>
           </div>
           <div class="module-card">
             <h3>Pose Studio</h3>
-            <p>2D-схема и слайдеры по группам тела; связь с телеметрией при необходимости.</p>
+            <p>2D-схема и вкладка WASM (MuJoCo); слайдеры и 3D без live WebSocket в текущей сборке.</p>
             <p class="route">/pose</p>
           </div>
           <div class="module-card">
@@ -811,9 +807,9 @@ api --> cli</div>
             <p class="route">/packages</p>
           </div>
           <div class="module-card">
-            <h3>Телеметрия</h3>
-            <p>Поток WS, слайдеры/таблица, согласованность группировки с Pose Studio.</p>
-            <p class="route">/telemetry</p>
+            <h3>Маршрут /telemetry</h3>
+            <p>Редирект на Pose Studio. Контракт <code>/ws/telemetry</code> остаётся на бэкенде для интеграций.</p>
+            <p class="route">/telemetry → /pose</p>
           </div>
           <div class="module-card">
             <h3>Справка</h3>
@@ -833,7 +829,7 @@ api --> cli</div>
           <li>Сценарий: список действий → сборка нод → <code>POST /api/scenario/estimate</code>.</li>
           <li>Конвейер: пути на хосте бэкенда или JSON в теле → subprocess → логи в UI.</li>
           <li>Платформа: сохранить артефакт → поставить train → опрос <code>GET /api/jobs/{id}</code> до завершения.</li>
-          <li>Телеметрия: одно WS-соединение, обновление UI.</li>
+          <li>Телеметрия (бэкенд): эндпоинт <code>/ws/telemetry</code>; в текущем SPA нет экрана с подпиской на поток.</li>
         </ol>
 
         <details class="for-po-detail">

@@ -40,27 +40,16 @@
 
 ---
 
-## 4. SPA rewrites
+## 4. Файл `vercel.json` (канон — в репозитории)
 
-Все маршруты React Router должны отдавать `index.html`. Vercel поддерживает это через `vercel.json` или настройки фреймворка.
+В проекте уже лежит [`web/frontend/vercel.json`](../../web/frontend/vercel.json). **Не нужно** подменять его «минимальной» версией только с `rewrites`: при деплое с **Root Directory** = `web/frontend` Vercel подхватит этот файл как есть.
 
-Создайте файл `web/frontend/vercel.json` (если его нет):
+Содержимое согласовано с продакшен-чеклистом:
 
-```json
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
+- **SPA:** все пути отдают `index.html` (клиентский роутинг React Router).
+- **Долгий кэш** для тяжёлых ассетов MuJoCo: заголовки `Cache-Control: public, max-age=31536000, immutable` для `/mujoco/g1/(.*)` и для `*.wasm`.
 
-Либо Vercel автоматически определит Vite и настроит rewrites.
-
----
-
-## 5. Кэширование статики
-
-Для крупных файлов (WASM, STL-меши) рекомендуется долгий `Cache-Control`. Vercel по умолчанию кэширует статику из `dist/assets/` с хэшами в именах. Для файлов в `public/` добавьте в `vercel.json`:
+Итоговый JSON совпадает с примером ниже (при обновлении кода сверяйтесь с файлом в репозитории):
 
 ```json
 {
@@ -84,9 +73,11 @@
 }
 ```
 
+Vercel по умолчанию также кэширует хэшированную статику из `dist/assets/`.
+
 ---
 
-## 6. Бэкенд на отдельном хосте
+## 5. Бэкенд на отдельном хосте
 
 Если бэкенд FastAPI развёрнут отдельно (не на Vercel):
 
@@ -99,7 +90,7 @@
 
 ---
 
-## 7. Проверка деплоя
+## 6. Проверка деплоя
 
 После успешного деплоя:
 
@@ -110,35 +101,7 @@
 
 ---
 
-## 8. Пример полного `vercel.json`
-
-```json
-{
-  "headers": [
-    {
-      "source": "/mujoco/g1/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/(.*)\\.wasm",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
-  ],
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
-
-Разместите файл в `web/frontend/vercel.json`.
-
----
-
-## 9. Troubleshooting
+## 7. Troubleshooting
 
 | Проблема | Решение |
 |----------|---------|

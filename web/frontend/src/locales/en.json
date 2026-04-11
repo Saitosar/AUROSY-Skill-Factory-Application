@@ -96,7 +96,9 @@
     "serverPhase0Ok": "Server (Phase 0): OK",
     "schemaClientTitle": "JSON Schema (client)",
     "serverPhase0Title": "Server Phase 0",
-    "dash": "—"
+    "dash": "—",
+    "yes": "yes",
+    "no": "no"
   },
   "toast": {
     "networkError": "Network or server error"
@@ -249,7 +251,15 @@
     "errTrainPaths": "Provide a path to reference_trajectory.json and/or config (e.g. smoke_train_config.json).",
     "statusDone": "Done",
     "statusError": "Error",
-    "statusRunning": "Running"
+    "statusRunning": "Running",
+    "motionValidationTitle": "Motion validation (offline)",
+    "motionValidationMeta": "Pinocchio (RNEA): {{pin}} · collision: {{collision}}",
+    "motionValidationPassed": "No blocking issues reported.",
+    "motionValidationFailed": "Validation reported errors — review before playback.",
+    "motionValidationWarnings": "{{count}} warning(s) — playback may still be possible.",
+    "motionValidationTruncated": "… and {{count}} more",
+    "validateMotionSkip": "Skip motion validation on preprocess",
+    "validateMotionOnly": "Validate trajectory only"
   },
   "jobs": {
     "title": "Jobs & platform (Phase 5)",
@@ -492,7 +502,7 @@
       "q4": "How do I set the API base URL for a built app?",
       "a4": "Set <c1>VITE_API_BASE</c1> at build time to the API URL <strong>without</strong> a trailing slash, or leave it empty for same-origin behind a reverse-proxy. WebSocket URLs follow the same host/scheme. The effective value appears in <strong>Settings</strong>.",
       "q5": "Where is the full deployment checklist?",
-      "a5": "In the repo: <c1>docs/g1-control-ui/DEPLOYMENT.md</c1> — a concise checklist (proxy, WS, worker, telemetry, Phase 5, CORS)."
+      "a5": "In the repo: <c1>docs/g1-control-ui/DEPLOYMENT.md</c1> (pointer to <c2>docs/deployment/README.md</c2>) — checklist: proxy, WS, worker, telemetry, Phase 5, CORS."
     },
     "platform": {
       "h2": "Platform: artifacts, train queue, and packages",

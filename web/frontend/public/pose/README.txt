@@ -1,6 +1,6 @@
 Pose Studio static assets (frontend_developer_guide §1.4 in the backend repo).
 
-User-facing notes on placeholders and swapping assets: docs/g1-control-ui/FAQ.md (section «Pose Studio и ассеты») and in-app Help at /help. Live joint angles on Pose Studio use the same WebSocket as Telemetry; if the backend reports DDS telemetry without a bridge, see FAQ §5 (Telemetry) and docs/g1-control-ui/DEPLOYMENT.md.
+User-facing notes on placeholders and swapping assets: docs/g1-control-ui/FAQ.md (section «Pose Studio и ассеты») and in-app Help at /help. Pose Studio uses local MuJoCo WASM and GET /api/joints for labels; /telemetry redirects to /pose. For DDS vs mock telemetry and deployment, see FAQ §5 and docs/g1-control-ui/DEPLOYMENT.md (points to docs/deployment/README.md).
 
 - robot-diagram.svg — bundled placeholder until official PNG/SVG from §1.4 are copied here.
 - Optional: add robot.png (same aspect ratio as overlay zones) and extend pose-overlay.json for custom SVG paths.

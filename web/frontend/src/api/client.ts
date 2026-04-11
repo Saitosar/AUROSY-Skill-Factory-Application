@@ -168,12 +168,32 @@ export async function estimateScenario(nodes: unknown) {
   }>;
 }
 
+/** Server motion validation report (`skill_foundry_validation`). */
+export type MotionValidationIssue = {
+  severity: string;
+  code: string;
+  message: string;
+  frame_index?: number;
+  motor_index?: number;
+  detail?: Record<string, unknown>;
+};
+
+export type MotionValidationReport = {
+  ok: boolean;
+  issues: MotionValidationIssue[];
+  pinocchio_used?: boolean;
+  collision_engine?: string;
+  notes?: string[];
+};
+
 export type PreprocessPipelineResponse = {
   exit_code: number;
   stdout: string;
   stderr: string;
   reference_trajectory_json: string | null;
   preprocess_run_json: string | null;
+  /** Present when preprocess succeeded and server ran motion validation. */
+  motion_validation?: MotionValidationReport | null;
 };
 
 /** Ответы playback/train: subprocess-поля + произвольные поля артефактов (см. OpenAPI бэкенда). */
@@ -198,17 +218,44 @@ export type TrainRequestBody = {
   config_path?: string;
 };
 
+export type PreprocessOptions = {
+  /** When false, server skips offline motion validation after preprocess. Default true. */
+  validate_motion?: boolean;
+  /** Override MJCF for collision stage (host path on API server). */
+  mjcf_path?: string | null;
+};
+
 export async function runPreprocess(
   keyframes: unknown,
-  frequency_hz?: number
+  frequency_hz?: number,
+  options?: PreprocessOptions
 ): Promise<PreprocessPipelineResponse> {
   const r = await fetch(apiUrl("/api/pipeline/preprocess"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ keyframes, frequency_hz: frequency_hz ?? null }),
+    body: JSON.stringify({
+      keyframes,
+      frequency_hz: frequency_hz ?? null,
+      validate_motion: options?.validate_motion ?? true,
+      mjcf_path: options?.mjcf_path ?? null,
+    }),
   });
   if (!r.ok) throw new Error(await r.text());
   return r.json() as Promise<PreprocessPipelineResponse>;
+}
+
+/** Offline validate reference_trajectory (kinematics, optional Pinocchio RNEA, MuJoCo penetration). */
+export async function runValidateMotion(
+  reference_trajectory: unknown,
+  mjcf_path?: string | null
+): Promise<MotionValidationReport> {
+  const r = await fetch(apiUrl("/api/pipeline/validate-motion"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reference_trajectory, mjcf_path: mjcf_path ?? null }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json() as Promise<MotionValidationReport>;
 }
 
 export async function runPlayback(body: PlaybackRequestBody): Promise<PipelineSubprocessJsonResult> {

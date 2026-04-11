@@ -96,7 +96,9 @@
     "serverPhase0Ok": "Сервер (Phase 0): OK",
     "schemaClientTitle": "JSON Schema (клиент)",
     "serverPhase0Title": "Сервер Phase 0",
-    "dash": "—"
+    "dash": "—",
+    "yes": "да",
+    "no": "нет"
   },
   "toast": {
     "networkError": "Ошибка сети или ответа сервера"
@@ -249,7 +251,15 @@
     "errTrainPaths": "Укажите путь к reference_trajectory.json и/или config (например smoke_train_config.json).",
     "statusDone": "Готово",
     "statusError": "Ошибка",
-    "statusRunning": "Выполняется"
+    "statusRunning": "Выполняется",
+    "motionValidationTitle": "Проверка движения (офлайн)",
+    "motionValidationMeta": "Pinocchio (RNEA): {{pin}} · коллизии: {{collision}}",
+    "motionValidationPassed": "Блокирующих проблем не найдено.",
+    "motionValidationFailed": "Есть ошибки валидации — проверьте перед воспроизведением.",
+    "motionValidationWarnings": "{{count}} предупреждение(й) — воспроизведение возможно.",
+    "motionValidationTruncated": "… ещё {{count}}",
+    "validateMotionSkip": "Не запускать проверку движения при preprocess",
+    "validateMotionOnly": "Только проверить траекторию"
   },
   "jobs": {
     "title": "Задачи и платформа (Phase 5)",
@@ -492,7 +502,7 @@
       "q4": "Как задать базовый URL API в собранном приложении?",
       "a4": "При сборке задайте <c1>VITE_API_BASE</c1> на URL API <strong>без</strong> завершающего слэша или оставьте пустым для same-origin за reverse-proxy. WebSocket строится от того же хоста/схемы. Эффективное значение видно в <strong>Настройках</strong>.",
       "q5": "Где полный чеклист развёртывания?",
-      "a5": "В репозитории: <c1>docs/g1-control-ui/DEPLOYMENT.md</c1> — маркированный список (прокси, WS, worker, телеметрия, Phase 5, CORS)."
+      "a5": "В репозитории: <c1>docs/g1-control-ui/DEPLOYMENT.md</c1> (указатель на <c2>docs/deployment/README.md</c2>) — чеклист: прокси, WS, worker, телеметрия, Phase 5, CORS."
     },
     "platform": {
       "h2": "Платформа: артефакты, очередь train и пакеты",

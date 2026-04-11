@@ -10,7 +10,7 @@
 - Управление углами суставов через слайдеры UI → запись в `qpos` MuJoCo → обновление 3D-сцены.
 - Несколько keyframes: до трёх дополнительных **сохранённых поз** плюс текущая поза (до четырёх keyframes в экспорте); экспорт в Авторинг / Конвейер / черновик на платформе — один Phase 0 JSON с массивом `keyframes`.
 - Скачивание **`pose.json` (SDK)** — плоский JSON-массив поз в градусах (формат `mid_level_motions/.../pose.json` на стороне Python SDK).
-- **Создать движение** — предпросмотр траектории в окне: плавная интерполяция углов между текущим состоянием и сохранёнными позами (cosine ease, по духу `atomic_move.py`); без `mj_step` и без усилий на актуаторах.
+- **Создать движение** — предпросмотр траектории в окне: плавная интерполяция углов между текущим состоянием и сохранёнными позами (cosine ease в [`motionInterpolation.ts`](../web/frontend/src/lib/motionInterpolation.ts), по духу `atomic_move.py`); без `mj_step` и без усилий на актуаторах.
 - Экспорт keyframes использует ключи суставов Phase 0 в `joints_deg`: строки **`"0"`…`"28"`** (градусы), согласованно с телеметрией и валидацией.
 
 ---
@@ -24,6 +24,7 @@
 | Маппинг суставов | [`web/frontend/src/mujoco/jointMapping.ts`](../web/frontend/src/mujoco/jointMapping.ts), [`qposToSkillAngles.ts`](../web/frontend/src/mujoco/qposToSkillAngles.ts) |
 | Патч XML | [`web/frontend/src/mujoco/menagerieXmlPatch.ts`](../web/frontend/src/mujoco/menagerieXmlPatch.ts) |
 | 3D-рендер | Three.js + @react-three/fiber в [`MuJoCoG1Viewer.tsx`](../web/frontend/src/components/mujoco/MuJoCoG1Viewer.tsx) |
+| Интерполяция траектории («Создать движение») | [`motionInterpolation.ts`](../web/frontend/src/lib/motionInterpolation.ts) (`easeCosine01`, `segmentDurationSec`, `smoothStepJointAnglesRad`) |
 | Ассеты (MJCF, STL) | `web/frontend/public/mujoco/g1/` |
 
 ---

@@ -11,6 +11,7 @@
 | [g1-control-ui/](g1-control-ui/README.md) | Архитектура фронтенда, design system, FAQ |
 | [deployment/](deployment/README.md) | Развёртывание: Vercel, чеклист продакшена |
 | [mujoco-wasm-browser.md](mujoco-wasm-browser.md) | 3D MuJoCo в браузере (WASM) |
+| [aurosy-creators-factory-cofounders.html](aurosy-creators-factory-cofounders.html) | Статический обзор продукта для сооснователей (сверять с `docs/g1-control-ui/`) |
 | [archive/](archive/) | Исторические документы (планы, бэклоги, бриф Figma) |
 
 ---
@@ -29,4 +30,4 @@
 
 - `archive/g1-control-ui/` — roadmap F1–F17, Figma brief, backlog, старый DEPLOYMENT
 - `archive/superpowers/plans/` — планы для агентов
-- `archive/aurosy-creators-factory-cofounders.html` — статический артефакт
+- Статический обзор: [`aurosy-creators-factory-cofounders.html`](aurosy-creators-factory-cofounders.html) (в корне `docs/`, не в `archive/`)

@@ -19,6 +19,7 @@
 | [02_design_system.md](02_design_system.md) | Принципы UX, токены, компоненты, доступность |
 | [FAQ.md](FAQ.md) | Частые вопросы для пользователей; дублируется в UI на `/help` (ru/en) |
 | [backend_references.md](backend_references.md) | Типичные пути к документам и коду в репозитории бэкенда |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Указатель на чеклист развёртывания ([`../deployment/README.md`](../deployment/README.md)) |
 
 ## Маршруты приложения
 
@@ -31,7 +32,7 @@
 | `/pipeline` | Конвейер (preprocess, playback, train) |
 | `/jobs`, `/jobs/:jobId` | Задачи Phase 5 (очередь train) |
 | `/packages` | Пакеты (Skill Bundle) |
-| `/telemetry` | Телеметрия (WebSocket) |
+| `/telemetry` | Редирект на `/pose` (старые закладки; отдельного экрана телеметрии нет) |
 | `/help` | Справка (FAQ ru/en) |
 | `/settings` | Настройки (язык, API base, версия) |
 

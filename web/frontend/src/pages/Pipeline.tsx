@@ -8,7 +8,9 @@ import {
   runPlayback,
   runPreprocess,
   runTrain,
+  runValidateMotion,
   validateApi,
+  type MotionValidationReport,
   type PipelineSubprocessJsonResult,
   type PreprocessPipelineResponse,
 } from "../api/client";
@@ -57,6 +59,9 @@ export default function Pipeline() {
 
   const [kfText, setKfText] = useState(SAMPLE_KEYFRAMES);
   const [freq, setFreq] = useState(50);
+  const [skipMotionValidation, setSkipMotionValidation] = useState(false);
+  const [motionValidationReplay, setMotionValidationReplay] = useState<MotionValidationReport | null>(null);
+  const [motionValidateBusy, setMotionValidateBusy] = useState(false);
 
   const [validateErrors, setValidateErrors] = useState<string[] | null>(null);
   const [validateOk, setValidateOk] = useState(false);
@@ -69,7 +74,7 @@ export default function Pipeline() {
   const [trainCfgPath, setTrainCfgPath] = useState("");
   const [busy, setBusy] = useState<Busy>(null);
 
-  const anyBusy = busy !== null;
+  const anyBusy = busy !== null || motionValidateBusy;
   const validationFailed = validateErrors !== null && validateErrors.length > 0;
 
   const preprocessRefTransfer = useMemo(() => {
@@ -167,15 +172,42 @@ export default function Pipeline() {
 
   async function preprocess() {
     setPreView(null);
+    setMotionValidationReplay(null);
     setBusy("preprocess");
     try {
       const data = parseKeyframes();
-      const r = await runPreprocess(data, freq);
+      const r = await runPreprocess(data, freq, {
+        validate_motion: !skipMotionValidation,
+      });
       setPreView({ ok: true, data: r });
     } catch (e) {
       setPreView({ ok: false, error: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function revalidateMotionOnly() {
+    if (!preView?.ok || !preView.data.reference_trajectory_json?.trim()) {
+      toast.error(t("pipeline.errNoRefJson"));
+      return;
+    }
+    setMotionValidateBusy(true);
+    setMotionValidationReplay(null);
+    try {
+      const ref = JSON.parse(preView.data.reference_trajectory_json) as unknown;
+      const report = await runValidateMotion(ref, meta?.mjcf_default ?? null);
+      setMotionValidationReplay(report);
+      if (!report.ok) {
+        toast.error(t("pipeline.motionValidationFailed"));
+      } else {
+        toast.success(t("pipeline.motionValidationPassed"));
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(msg);
+    } finally {
+      setMotionValidateBusy(false);
     }
   }
 
@@ -193,7 +225,9 @@ export default function Pipeline() {
         body.reference_path = refPath.trim();
       } else {
         const pre = parseKeyframes();
-        const prep = await runPreprocess(pre, freq);
+        const prep = await runPreprocess(pre, freq, {
+          validate_motion: !skipMotionValidation,
+        });
         if (!prep.reference_trajectory_json) {
           setPbView({ ok: false, error: t("pipeline.errNoRefJson") });
           return;
@@ -399,6 +433,14 @@ export default function Pipeline() {
             onChange={(e) => setFreq(Number(e.target.value))}
           />
         </label>
+        <label className="muted" style={{ display: "block", marginTop: 8 }}>
+          <input
+            type="checkbox"
+            checked={skipMotionValidation}
+            onChange={(e) => setSkipMotionValidation(e.target.checked)}
+          />{" "}
+          {t("pipeline.validateMotionSkip")}
+        </label>
         <textarea className="code" value={kfText} onChange={(e) => setKfText(e.target.value)} spellCheck={false} />
         <div className="row" style={{ marginTop: 8 }}>
           <button
@@ -409,6 +451,15 @@ export default function Pipeline() {
             onClick={() => void preprocess()}
           >
             {t("pipeline.runPreprocess")}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={anyBusy || motionValidateBusy || !preView?.ok || !preView.data.reference_trajectory_json}
+            aria-busy={motionValidateBusy}
+            onClick={() => void revalidateMotionOnly()}
+          >
+            {t("pipeline.validateMotionOnly")}
           </button>
         </div>
         {busy === "preprocess" && (
@@ -423,7 +474,7 @@ export default function Pipeline() {
             ) : (
               <PipelineStatusBadge kind="error" />
             )}
-            <PreprocessResultView result={preView.data} />
+            <PreprocessResultView result={preView.data} motionValidation={motionValidationReplay} />
             {preprocessRefTransfer?.kind === "ready" ? (
               <div className="panel pipeline-preprocess-cta" role="region" aria-label={t("pipeline.preprocessCtaTitle")}>
                 <h4 className="pipeline-preprocess-cta-title">{t("pipeline.preprocessCtaTitle")}</h4>

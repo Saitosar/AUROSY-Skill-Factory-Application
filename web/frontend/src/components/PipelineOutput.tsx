@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { PipelineSubprocessJsonResult, PreprocessPipelineResponse } from "../api/client";
+import type {
+  MotionValidationReport,
+  PipelineSubprocessJsonResult,
+  PreprocessPipelineResponse,
+} from "../api/client";
+import { ValidationReportPanel } from "./ValidationReportPanel";
 
 export const MAX_PIPELINE_PREVIEW_CHARS = 8000;
 
@@ -86,8 +91,16 @@ export function PipelineSubprocessResultView({ result }: { result: PipelineSubpr
   );
 }
 
-export function PreprocessResultView({ result }: { result: PreprocessPipelineResponse }) {
+export function PreprocessResultView({
+  result,
+  motionValidation,
+}: {
+  result: PreprocessPipelineResponse;
+  /** Prefer client re-run over `result.motion_validation` when set. */
+  motionValidation?: MotionValidationReport | null;
+}) {
   const { t } = useTranslation();
+  const mv = motionValidation ?? result.motion_validation ?? null;
   return (
     <div className="pipeline-log-stack">
       <div className="pipeline-exit-code muted">
@@ -95,6 +108,7 @@ export function PreprocessResultView({ result }: { result: PreprocessPipelineRes
       </div>
       <TruncatedBlock title="stdout" value={result.stdout} />
       <TruncatedBlock title="stderr" value={result.stderr} />
+      {mv && <ValidationReportPanel report={mv} />}
       {result.reference_trajectory_json && (
         <TruncatedBlock
           title={t("pipelineOutput.titleRefTrajectory")}
