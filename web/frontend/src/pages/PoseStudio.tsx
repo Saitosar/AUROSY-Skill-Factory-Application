@@ -50,6 +50,7 @@ export default function PoseStudio() {
   const [wasmMotionPlaying, setWasmMotionPlaying] = useState(false);
   const wasmMotionPlayingRef = useRef(false);
   const wasmMotionCancelRef = useRef(false);
+  const [physicsEnabled, setPhysicsEnabled] = useState(false);
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
@@ -244,6 +245,7 @@ export default function PoseStudio() {
             <Suspense fallback={<p className="muted">{t("pose.wasmLoading")}</p>}>
               <MuJoCoG1Viewer
                 jointRad={wasmJointRad}
+                physicsEnabled={physicsEnabled}
                 onReady={onWasmReady}
                 onError={(e) => {
                   setWasmViewerError(e.message);
@@ -251,6 +253,14 @@ export default function PoseStudio() {
                 }}
               />
             </Suspense>
+            <label className="pose-studio-physics-toggle">
+              <input
+                type="checkbox"
+                checked={physicsEnabled}
+                onChange={(e) => setPhysicsEnabled(e.target.checked)}
+              />
+              {" Physics (gravity)"}
+            </label>
           </div>
         </section>
 
