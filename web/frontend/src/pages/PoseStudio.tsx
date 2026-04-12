@@ -24,6 +24,7 @@ import {
   defaultJointMapFromSkillKeys,
   WASM_FALLBACK_JOINT_INDICES,
 } from "../lib/wasmJointLayoutFallback";
+import { DANCE_LIBRARY, type DanceSequence } from "../lib/danceSequences";
 
 const FALLBACK_JOINT_MAP = defaultJointMapFromSkillKeys();
 
@@ -53,6 +54,8 @@ export default function PoseStudio() {
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [freeStand, setFreeStand] = useState(false);
   const [autoBalance, setAutoBalance] = useState(true);
+  const [dancePlaying, setDancePlaying] = useState(false);
+  const danceCancelRef = useRef(false);
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
@@ -147,6 +150,7 @@ export default function PoseStudio() {
 
   const stopWasmMotion = useCallback(() => {
     wasmMotionCancelRef.current = true;
+    danceCancelRef.current = true;
   }, []);
 
   const playWasmMotion = useCallback(async () => {
@@ -181,6 +185,41 @@ export default function PoseStudio() {
       wasmMotionCancelRef.current = false;
     }
   }, [savedWasmPoses, wasmReady]);
+
+  const playDance = useCallback(async (dance: DanceSequence) => {
+    if (!wasmReady || wasmMotionPlayingRef.current || dancePlaying) return;
+    danceCancelRef.current = false;
+    setDancePlaying(true);
+    setWasmMotionPlaying(true);
+    try {
+      const totalLoops = dance.loops || 1;
+      for (let loop = 0; loop < totalLoops; loop++) {
+        if (danceCancelRef.current) break;
+        let from = captureFullJointAnglesSkillKeys(wasmJointRadRef.current);
+        for (const kf of dance.keyframes) {
+          if (danceCancelRef.current) break;
+          const to = kf.pose;
+          const durationMs = kf.duration * 1000;
+          await new Promise<void>((resolve) => {
+            const t0 = performance.now();
+            const step = (now: number) => {
+              if (danceCancelRef.current) { resolve(); return; }
+              const u = Math.min(1, (now - t0) / durationMs);
+              setWasmJointRad(smoothStepJointAnglesRad(from, to, u));
+              if (u < 1) requestAnimationFrame(step);
+              else resolve();
+            };
+            requestAnimationFrame(step);
+          });
+          from = to;
+        }
+      }
+    } finally {
+      setDancePlaying(false);
+      setWasmMotionPlaying(false);
+      danceCancelRef.current = false;
+    }
+  }, [wasmReady, dancePlaying]);
 
   const effectiveNames = useMemo(() => {
     let n = 0;
@@ -374,9 +413,26 @@ export default function PoseStudio() {
             >
               {t("pose.createMotion")}
             </button>
-            <button type="button" className="secondary" disabled={!wasmMotionPlaying} onClick={stopWasmMotion}>
+            <button type="button" className="secondary" disabled={!wasmMotionPlaying && !dancePlaying} onClick={stopWasmMotion}>
               {t("pose.stopMotion")}
             </button>
+            {/* ── Dance buttons ── */}
+            {DANCE_LIBRARY.map((dance) => (
+              <button
+                key={dance.name}
+                type="button"
+                className="secondary"
+                style={{
+                  background: dancePlaying ? undefined : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: dancePlaying ? undefined : "#fff",
+                  border: "none",
+                }}
+                disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
+                onClick={() => void playDance(dance)}
+              >
+                {"💃 " + dance.name}
+              </button>
+            ))}
             <button
               type="button"
               className="secondary"

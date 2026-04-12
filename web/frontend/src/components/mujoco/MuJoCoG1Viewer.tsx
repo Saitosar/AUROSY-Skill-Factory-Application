@@ -2,6 +2,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import * as ort from "onnxruntime-web";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../../mujoco/jointMapping";
 import { loadMenagerieG1 } from "../../mujoco/loadMenagerieG1";
 import { qposVecGet, qposVecSet, skillKeyQposAddress } from "../../mujoco/qposToSkillAngles";
@@ -231,6 +232,89 @@ function applyAutoBalance(data: MuJoCoData): void {
   qposVecSet(ctrl, R_KNEE, Math.max(rk, BAL.kneeMin));
 }
 
+// ── RL Balance Policy (ONNX) ──────────────────────────────────────────────────
+const DELTA_MAX = 0.3; // must match training env
+let _rlSession: ort.InferenceSession | null = null;
+let _rlLoading = false;
+let _rlLoadFailed = false;
+
+async function loadRLBalancePolicy(): Promise<ort.InferenceSession | null> {
+  if (_rlSession) return _rlSession;
+  if (_rlLoading || _rlLoadFailed) return null;
+  _rlLoading = true;
+  try {
+    _rlSession = await ort.InferenceSession.create("/mujoco/g1/balance_policy.onnx", {
+      executionProviders: ["wasm"],
+    });
+    console.log("[RL Balance] ONNX model loaded");
+    _rlLoading = false;
+    return _rlSession;
+  } catch (e) {
+    console.warn("[RL Balance] Failed to load ONNX:", e);
+    _rlLoadFailed = true;
+    _rlLoading = false;
+    return null;
+  }
+}
+
+/**
+ * Build observation vector (43 dims) matching G1BalanceEnv:
+ *  pelvis_quat(4) + pelvis_angvel(3) + pelvis_linvel(3) +
+ *  leg_q(12) + leg_dq(12) + pelvis_z(1) + waist_targets(3) + arm_context(5)
+ */
+function buildBalanceObs(data: MuJoCoData): Float32Array {
+  const obs = new Float32Array(43);
+  let idx = 0;
+
+  // Pelvis quaternion [qpos 3..6]
+  for (let i = 3; i <= 6; i++) obs[idx++] = qposVecGet(data.qpos, i) ?? (i === 3 ? 1 : 0);
+
+  // Pelvis angular velocity [qvel 3..5]
+  for (let i = 3; i <= 5; i++) obs[idx++] = qposVecGet(data.qvel, i) ?? 0;
+
+  // Pelvis linear velocity [qvel 0..2]
+  for (let i = 0; i <= 2; i++) obs[idx++] = qposVecGet(data.qvel, i) ?? 0;
+
+  // Leg joint angles [qpos 7..18]
+  for (let i = 7; i <= 18; i++) obs[idx++] = qposVecGet(data.qpos, i) ?? 0;
+
+  // Leg joint velocities [qvel 6..17]
+  for (let i = 6; i <= 17; i++) obs[idx++] = qposVecGet(data.qvel, i) ?? 0;
+
+  // Pelvis height
+  obs[idx++] = qposVecGet(data.qpos, 2) ?? 0.793;
+
+  // Waist targets (current ctrl for waist joints 12,13,14)
+  obs[idx++] = qposVecGet(data.ctrl, 12) ?? 0;
+  obs[idx++] = qposVecGet(data.ctrl, 13) ?? 0;
+  obs[idx++] = qposVecGet(data.ctrl, 14) ?? 0;
+
+  // Arm context (ctrl 15, 22, 18, 25, 14)
+  obs[idx++] = qposVecGet(data.ctrl, 15) ?? 0;
+  obs[idx++] = qposVecGet(data.ctrl, 22) ?? 0;
+  obs[idx++] = qposVecGet(data.ctrl, 18) ?? 0;
+  obs[idx++] = qposVecGet(data.ctrl, 25) ?? 0;
+  obs[idx++] = qposVecGet(data.ctrl, 14) ?? 0;
+
+  return obs;
+}
+
+let _lastRLAction: Float32Array | null = null;
+
+function applyRLBalance(data: MuJoCoData): void {
+  if (!_rlSession || !_lastRLAction) {
+    // Fallback to PD balance until RL is ready
+    applyAutoBalance(data);
+    return;
+  }
+
+  // Apply RL leg residuals (12 dims → ctrl[0..11])
+  for (let i = 0; i < 12; i++) {
+    const current = qposVecGet(data.ctrl, i) ?? 0;
+    qposVecSet(data.ctrl, i, current + _lastRLAction[i] * DELTA_MAX);
+  }
+}
+
 function MuJoCoG1Scene({
   jointRad,
   physicsEnabled = false,
@@ -284,6 +368,9 @@ function MuJoCoG1Scene({
           dispose();
           return;
         }
+
+        // Start loading RL balance policy in background
+        loadRLBalancePolicy();
 
         const m = model as MuJoCoModel;
         const mjtGeom = (mujoco as { mjtGeom: MjGeomType }).mjtGeom;
@@ -430,6 +517,15 @@ function MuJoCoG1Scene({
 
       const useBalance = freeStandRef.current && autoBalanceRef.current;
 
+      // Run async RL inference (result used next frame)
+      if (useBalance && _rlSession) {
+        const obs = buildBalanceObs(data);
+        const tensor = new ort.Tensor("float32", obs, [1, 43]);
+        _rlSession.run({ obs: tensor }).then((result) => {
+          _lastRLAction = result.action.data as Float32Array;
+        }).catch(() => { /* ignore inference errors */ });
+      }
+
       for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
         if (pinBase) {
           // Pin floating base BEFORE step — pelvis stays fixed in space.
@@ -451,7 +547,7 @@ function MuJoCoG1Scene({
             const v = jr[key];
             qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
           }
-          applyAutoBalance(data);
+          applyRLBalance(data);
         }
 
         (mujoco as { mj_step: (m: unknown, d: unknown) => void }).mj_step(model, data);
