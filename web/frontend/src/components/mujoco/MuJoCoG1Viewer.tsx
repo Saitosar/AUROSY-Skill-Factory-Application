@@ -149,8 +149,10 @@ function calcPhysicsSteps(): number {
 // ── Auto-balance controller ──────────────────────────────────────────────────
 // Actuator indices (matching SKILL_KEYS_IN_JOINT_MAP_ORDER / MENAGERIE_JOINT_NAMES):
 const L_HIP_PITCH   = 0;
+const L_HIP_ROLL    = 1;
 const L_ANKLE_PITCH = 4;
 const R_HIP_PITCH   = 6;
+const R_HIP_ROLL    = 7;
 const R_ANKLE_PITCH = 10;
 const L_KNEE        = 3;
 const R_KNEE        = 9;
@@ -200,6 +202,58 @@ const DEAD_ZONE = 0.01;
 const SMOOTH = 0.5;
 let _prevCorr = 0;
 let _prevRollCorr = 0;
+
+// ── Weight-shift: auto-compensate when user bends one knee more than the other ──
+// Verified in test_weight_shift_v5.py: hr=2° waist=4° stand_knee=12°
+// passes ALL FPS (30/60/90/120/144) for knee up to 35°, worst roll 1.6°.
+const WEIGHT_SHIFT = {
+  hipRollRad: 2 * Math.PI / 180,   // 2° hip_roll on standing leg
+  waistRollRad: 4 * Math.PI / 180, // 4° waist_roll offset
+  standKneeRad: 12 * Math.PI / 180, // 12° standing knee minimum
+  kneeThresh: 3 * Math.PI / 180,   // activate above 3° knee diff
+  maxKneeDiff: 30 * Math.PI / 180, // full ratio at 30° diff
+  hipRollGuard: 5 * Math.PI / 180, // don't apply if user already set large hip_roll
+};
+
+/**
+ * When user bends one knee more than the other (via sliders),
+ * auto-shift weight to the straighter leg to prevent falling.
+ * Does NOT apply when the user/dance already includes hip_roll (>5°).
+ */
+function applyWeightShift(data: MuJoCoData): void {
+  const ctrl = data.ctrl;
+  const lk = qposVecGet(ctrl, L_KNEE) ?? 0;
+  const rk = qposVecGet(ctrl, R_KNEE) ?? 0;
+  const kneeDiff = rk - lk; // positive = R knee more bent
+
+  if (Math.abs(kneeDiff) <= WEIGHT_SHIFT.kneeThresh) return;
+
+  const ratio = Math.max(-1, Math.min(1, kneeDiff / WEIGHT_SHIFT.maxKneeDiff));
+  const absRatio = Math.abs(ratio);
+
+  if (kneeDiff > 0) {
+    // R knee bent more → shift weight to L (standing leg)
+    const lhr = qposVecGet(ctrl, L_HIP_ROLL) ?? 0;
+    // Guard: skip if user/dance already set large hip_roll
+    if (Math.abs(lhr) < WEIGHT_SHIFT.hipRollGuard) {
+      qposVecSet(ctrl, L_HIP_ROLL, lhr - WEIGHT_SHIFT.hipRollRad * absRatio);
+    }
+    const lkv = qposVecGet(ctrl, L_KNEE) ?? 0;
+    qposVecSet(ctrl, L_KNEE, Math.max(lkv, WEIGHT_SHIFT.standKneeRad));
+  } else {
+    // L knee bent more → shift weight to R (standing leg)
+    const rhr = qposVecGet(ctrl, R_HIP_ROLL) ?? 0;
+    if (Math.abs(rhr) < WEIGHT_SHIFT.hipRollGuard) {
+      qposVecSet(ctrl, R_HIP_ROLL, rhr + WEIGHT_SHIFT.hipRollRad * absRatio);
+    }
+    const rkv = qposVecGet(ctrl, R_KNEE) ?? 0;
+    qposVecSet(ctrl, R_KNEE, Math.max(rkv, WEIGHT_SHIFT.standKneeRad));
+  }
+
+  // Waist roll to help shift COM
+  const wr = qposVecGet(ctrl, WAIST_ROLL) ?? 0;
+  qposVecSet(ctrl, WAIST_ROLL, wr - WEIGHT_SHIFT.waistRollRad * ratio);
+}
 
 function applyAutoBalance(data: MuJoCoData): void {
   const qpos = data.qpos;
@@ -596,6 +650,7 @@ function MuJoCoG1Scene({
             const v = jr[key];
             qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
           }
+          applyWeightShift(data);
           applyRLBalance(data);
         }
 
