@@ -50,7 +50,7 @@ export default function PoseStudio() {
   const [wasmMotionPlaying, setWasmMotionPlaying] = useState(false);
   const wasmMotionPlayingRef = useRef(false);
   const wasmMotionCancelRef = useRef(false);
-  const [physicsEnabled, setPhysicsEnabled] = useState(false);
+  const [physicsEnabled, setPhysicsEnabled] = useState(true);
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
