@@ -1154,10 +1154,9 @@ table.data td.num {
 /* Pose Studio (F4) */
 .pose-studio-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(260px, min(380px, 100%));
-  /* minmax(0,1fr) lets the row shrink below content min-size so overflow/scroll can apply */
+  grid-template-columns: 64px 1fr minmax(280px, 360px);
   grid-template-rows: minmax(0, 1fr);
-  gap: 20px;
+  gap: 12px;
   align-items: stretch;
   flex: 1;
   min-height: 0;
@@ -1168,29 +1167,32 @@ table.data td.num {
 
 @media (max-width: 960px) {
   .pose-studio-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: 56px 1fr;
+  }
+  .ps-control-panel {
+    grid-column: 1 / -1;
+    max-height: 320px;
   }
 }
 
-.pose-studio-page .pose-studio-visual {
+/* ── Center: 3D Viewer ── */
+.ps-viewer {
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  border-radius: var(--radius-card, 12px);
   overflow: hidden;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  position: relative;
 }
 
-.pose-studio-visual {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.pose-studio-sidebar {
+/* ── Right: Control panel ── */
+.ps-control-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-  max-width: 380px;
   min-height: 0;
   height: 100%;
   overflow-y: auto;
@@ -1198,17 +1200,19 @@ table.data td.num {
   overscroll-behavior: contain;
 }
 
-.pose-studio-sidebar > .panel {
-  margin-bottom: 0;
+.ps-control-panel > .ps-card {
   flex-shrink: 0;
 }
 
-.pose-studio-sidebar > .ps-joints-panel {
+.ps-control-panel > .ps-card--joints {
   flex-shrink: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.pose-studio-layout > .pose-studio-visual,
-.pose-studio-layout > .pose-studio-sidebar {
+.ps-viewer,
+.ps-control-panel {
   min-height: 0;
 }
 
@@ -1238,13 +1242,194 @@ table.data td.num {
   position: relative;
 }
 
-/* 3D MuJoCo: R3F Canvas + absolutely positioned canvas fill the grid cell. */
-.pose-studio-visual--wasm {
+/* 3D MuJoCo viewer fills the center column */
+.ps-viewer .pose-studio-wasm-host {
   min-height: 0;
+  height: 100%;
   flex: 1;
 }
 
-/* ═══ Pose Studio — New Section-Based Sidebar ═══ */
+/* ═══ Pose Studio — 3-Column Smart Dashboard Layout ═══
+
+   Inspired by smart-home dashboard:
+   - Left: Mini icon bar (Physics, Free, Balance, Add, Play, Stop)
+   - Center: Full 3D robot viewer
+   - Right: Card-based control panels (Keyframes, Dances, Joints)
+*/
+
+/* ── Left Mini Bar ── */
+.ps-minibar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card, 12px);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.ps-minibar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.ps-minibar-divider {
+  width: 32px;
+  height: 1px;
+  background: var(--border-default);
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
+.ps-minibar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 52px;
+  padding: 8px 4px 5px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+
+.ps-minibar-btn span {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.ps-minibar-btn svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ps-minibar-btn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-primary);
+}
+
+.ps-minibar-btn:hover:not(:disabled) svg {
+  opacity: 1;
+}
+
+.ps-minibar-btn--active {
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+}
+
+.ps-minibar-btn--active svg {
+  opacity: 1;
+}
+
+.ps-minibar-btn--active:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.ps-minibar-btn--disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.ps-minibar-btn--action {
+  color: var(--text-primary);
+}
+
+.ps-minibar-btn--action svg {
+  opacity: 0.8;
+}
+
+.ps-minibar-btn--stop {
+  color: #f87171;
+}
+
+.ps-minibar-btn--stop svg {
+  opacity: 0.8;
+}
+
+.ps-minibar-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.ps-minibar-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 8px;
+  line-height: 1;
+}
+
+/* ── Right Panel Cards ── */
+.ps-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card, 12px);
+  overflow: hidden;
+}
+
+.ps-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.ps-card-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ps-card-body {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-btn--icon {
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.ps-joints-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: min(100%, 60vh, 600px);
+  max-height: min(100%, 60dvh, 600px);
+  overscroll-behavior: contain;
+}
 
 /* Playing indicator on 3D viewer */
 .pose-studio-playing-badge {
@@ -1285,38 +1470,7 @@ table.data td.num {
   50% { opacity: 0.3; }
 }
 
-/* ── Section card ── */
-.ps-section {
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ps-section-title {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ps-section-title svg {
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-
-.ps-section-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/* ── Section card (kept for shared sub-component use) ── */
 
 /* ── Badge (pose counter) ── */
 .ps-badge {
@@ -1333,13 +1487,7 @@ table.data td.num {
   margin-left: 6px;
 }
 
-/* ── Toggle switches ── */
-.ps-toggle-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-
+/* ── Toggle switches (used in joints Expert toggle) ── */
 .ps-toggle {
   display: flex;
   align-items: center;
@@ -1503,10 +1651,6 @@ table.data td.num {
   align-items: center;
 }
 
-.ps-btn-row .ps-btn {
-  flex: 1;
-}
-
 .ps-btn-row .ps-btn--ghost {
   flex: 0 0 auto;
 }
@@ -1606,37 +1750,13 @@ table.data td.num {
   padding: 0 0 8px 4px;
 }
 
-/* ── Joints panel scrollable ── */
-.ps-joints-panel {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: min(100%, 72vh, 720px);
-  max-height: min(100%, 72dvh, 720px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-}
-
-/* ── Error panel ── */
+/* ── Error panel legacy ── */
 .ps-error-panel {
   flex-shrink: 0;
   border-color: rgba(239, 68, 68, 0.3);
 }
 
-/* Half the grid row height — full stretch was too tall on large viewports */
-.pose-studio-page .pose-studio-visual--wasm {
-  flex: unset;
-  height: 50%;
-  max-height: 50%;
-  align-self: start;
-  width: 100%;
-}
-
-.pose-studio-visual--wasm .pose-studio-wasm-host {
-  min-height: 0;
-  height: 100%;
-  flex: 1;
-}
+/* Old wasm-host sizing no longer needed — viewer fills center column */
 
 .mujoco-g1-viewer {
   flex: 1;

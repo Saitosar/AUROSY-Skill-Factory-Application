@@ -291,11 +291,79 @@ export default function PoseStudio() {
       <PageHeader title={t("pose.title")} description={t("pose.lead")} />
 
       <div className="pose-studio-layout">
-        {/* ── Left: 3D Viewer ── */}
-        <section
-          className="pose-studio-visual panel pose-studio-visual--wasm"
-          aria-label={t("pose.wasmViewerAria")}
-        >
+        {/* ── Left: Mini Control Bar (inspired by smart-home sidebar) ── */}
+        <nav className="ps-minibar" aria-label="Quick controls">
+          <div className="ps-minibar-group">
+            <button
+              type="button"
+              className={`ps-minibar-btn${physicsEnabled ? " ps-minibar-btn--active" : ""}`}
+              onClick={() => setPhysicsEnabled(!physicsEnabled)}
+              title="Physics"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Physics</span>
+            </button>
+            <button
+              type="button"
+              className={`ps-minibar-btn${freeStand ? " ps-minibar-btn--active" : ""}${!physicsEnabled ? " ps-minibar-btn--disabled" : ""}`}
+              onClick={() => physicsEnabled && setFreeStand(!freeStand)}
+              title="Free Stand"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a2 2 0 100 4 2 2 0 000-4zM10 22V12M14 22V12M7 8h10"/></svg>
+              <span>Free</span>
+            </button>
+            <button
+              type="button"
+              className={`ps-minibar-btn${autoBalance ? " ps-minibar-btn--active" : ""}${(!physicsEnabled || !freeStand) ? " ps-minibar-btn--disabled" : ""}`}
+              onClick={() => physicsEnabled && freeStand && setAutoBalance(!autoBalance)}
+              title="Auto Balance"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v18M3 12h18M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
+              <span>Balance</span>
+            </button>
+          </div>
+
+          <div className="ps-minibar-divider" />
+
+          <div className="ps-minibar-group">
+            <button
+              type="button"
+              className="ps-minibar-btn ps-minibar-btn--action"
+              disabled={!mergedForExport || savedWasmPoses.length >= MAX_SAVED_WASM_POSES || wasmMotionPlaying}
+              onClick={addWasmPose}
+              title={t("pose.addPose")}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Pose</span>
+              {savedWasmPoses.length > 0 && (
+                <span className="ps-minibar-badge">{savedWasmPoses.length}</span>
+              )}
+            </button>
+            <button
+              type="button"
+              className="ps-minibar-btn ps-minibar-btn--action"
+              disabled={savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlaying}
+              onClick={() => void playWasmMotion()}
+              title={t("pose.createMotion")}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>Play</span>
+            </button>
+            <button
+              type="button"
+              className="ps-minibar-btn ps-minibar-btn--stop"
+              disabled={!wasmMotionPlaying && !dancePlaying}
+              onClick={stopWasmMotion}
+              title={t("pose.stopMotion")}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="6" width="12" height="12"/></svg>
+              <span>Stop</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* ── Center: 3D Viewer (main stage) ── */}
+        <section className="ps-viewer" aria-label={t("pose.wasmViewerAria")}>
           <div className="pose-studio-wasm-host">
             <Suspense fallback={<p className="muted">{t("pose.wasmLoading")}</p>}>
               <MuJoCoG1Viewer
@@ -310,7 +378,7 @@ export default function PoseStudio() {
                 }}
               />
             </Suspense>
-            {/* Status overlay on viewer */}
+            {/* Dance playing overlay */}
             {dancePlaying && activeDanceName && (
               <div className="pose-studio-playing-badge">
                 <span className="pose-studio-playing-dot" />
@@ -320,145 +388,87 @@ export default function PoseStudio() {
           </div>
         </section>
 
-        {/* ── Right: Sidebar ── */}
-        <div className="pose-studio-sidebar">
+        {/* ── Right: Control Panel ── */}
+        <div className="ps-control-panel">
 
-          {/* ═══ §1 SIMULATION ═══ */}
-          <div className="ps-section panel">
-            <h3 className="ps-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              Simulation
-            </h3>
-            <div className="ps-toggle-row">
-              <label className="ps-toggle">
-                <input type="checkbox" checked={physicsEnabled} onChange={(e) => setPhysicsEnabled(e.target.checked)} />
-                <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
-                <span>Physics</span>
-              </label>
-              <label className={`ps-toggle${!physicsEnabled ? " ps-toggle--disabled" : ""}`}>
-                <input type="checkbox" checked={freeStand} disabled={!physicsEnabled} onChange={(e) => setFreeStand(e.target.checked)} />
-                <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
-                <span>Free Stand</span>
-              </label>
-              <label className={`ps-toggle${!physicsEnabled || !freeStand ? " ps-toggle--disabled" : ""}`}>
-                <input type="checkbox" checked={autoBalance} disabled={!physicsEnabled || !freeStand} onChange={(e) => setAutoBalance(e.target.checked)} />
-                <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
-                <span>Auto Balance</span>
-              </label>
-            </div>
-          </div>
-
-          {/* ═══ §2 KEYFRAMES ═══ */}
-          <div className="ps-section panel">
-            <h3 className="ps-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
-              Keyframes
-              {savedWasmPoses.length > 0 && (
-                <span className="ps-badge">{savedWasmPoses.length}/{MAX_SAVED_WASM_POSES}</span>
-              )}
-            </h3>
-            <div className="ps-btn-row">
+          {/* ═══ Keyframes ═══ */}
+          <div className="ps-card">
+            <div className="ps-card-header">
+              <h3 className="ps-card-title">
+                Keyframes
+                {savedWasmPoses.length > 0 && (
+                  <span className="ps-badge">{savedWasmPoses.length}/{MAX_SAVED_WASM_POSES}</span>
+                )}
+              </h3>
               <button
                 type="button"
-                className="ps-btn ps-btn--primary"
-                disabled={!mergedForExport || savedWasmPoses.length >= MAX_SAVED_WASM_POSES || wasmMotionPlaying}
-                onClick={addWasmPose}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                {t("pose.addPose")}
-              </button>
-              <button
-                type="button"
-                className="ps-btn ps-btn--ghost"
+                className="ps-btn ps-btn--ghost ps-btn--icon"
                 disabled={savedWasmPoses.length === 0 || wasmMotionPlaying}
                 onClick={clearWasmSavedPoses}
                 title={t("pose.clearSavedPoses")}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
               </button>
             </div>
-            <button
-              type="button"
-              className="ps-btn ps-btn--outline ps-btn--full"
-              disabled={!keyframesListForExport?.length || wasmMotionPlaying}
-              onClick={downloadSdkPoseJson}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              {t("pose.downloadSdkPoseJson")}
-            </button>
-            <div className="ps-draft-row">
-              <input
-                type="text"
-                className="ps-draft-input"
-                placeholder={t("pose.saveDraftPrompt")}
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
-                disabled={wasmMotionPlaying}
-              />
+            <div className="ps-card-body">
               <button
                 type="button"
-                className="ps-btn ps-btn--primary ps-btn--sm"
-                disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying}
-                onClick={() => void saveWasmDraft()}
-                title={t("pose.saveDraft")}
+                className="ps-btn ps-btn--outline ps-btn--full"
+                disabled={!keyframesListForExport?.length || wasmMotionPlaying}
+                onClick={downloadSdkPoseJson}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                {t("pose.downloadSdkPoseJson")}
               </button>
-            </div>
-          </div>
-
-          {/* ═══ §3 PLAYBACK ═══ */}
-          <div className="ps-section panel">
-            <h3 className="ps-section-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Playback
-            </h3>
-            <div className="ps-btn-row">
-              <button
-                type="button"
-                className="ps-btn ps-btn--primary"
-                disabled={savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlaying}
-                onClick={() => void playWasmMotion()}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                {t("pose.createMotion")}
-              </button>
-              <button
-                type="button"
-                className="ps-btn ps-btn--destructive"
-                disabled={!wasmMotionPlaying && !dancePlaying}
-                onClick={stopWasmMotion}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="6" width="12" height="12"/></svg>
-                {t("pose.stopMotion")}
-              </button>
-            </div>
-            <div className="ps-dance-grid">
-              {DANCE_LIBRARY.map((dance) => (
+              <div className="ps-draft-row">
+                <input
+                  type="text"
+                  className="ps-draft-input"
+                  placeholder={t("pose.saveDraftPrompt")}
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
+                  disabled={wasmMotionPlaying}
+                />
                 <button
-                  key={dance.name}
                   type="button"
-                  className={`ps-btn ps-btn--dance${activeDanceName === dance.name ? " ps-btn--dance-active" : ""}`}
-                  disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
-                  onClick={() => void playDance(dance)}
+                  className="ps-btn ps-btn--primary ps-btn--sm"
+                  disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying}
+                  onClick={() => void saveWasmDraft()}
+                  title={t("pose.saveDraft")}
                 >
-                  💃 {dance.name}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 </button>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* ═══ §4 JOINTS ═══ */}
-          <aside
-            className="ps-section ps-joints-panel panel"
-            aria-labelledby="pose-studio-joints-heading"
-          >
-            <div className="ps-section-title-row">
-              <h3 className="ps-section-title" id="pose-studio-joints-heading">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                {t("pose.jointsPanelTitle")}
-              </h3>
+          {/* ═══ Dances ═══ */}
+          <div className="ps-card">
+            <div className="ps-card-header">
+              <h3 className="ps-card-title">Dances</h3>
+            </div>
+            <div className="ps-card-body">
+              <div className="ps-dance-grid">
+                {DANCE_LIBRARY.map((dance) => (
+                  <button
+                    key={dance.name}
+                    type="button"
+                    className={`ps-btn ps-btn--dance${activeDanceName === dance.name ? " ps-btn--dance-active" : ""}`}
+                    disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
+                    onClick={() => void playDance(dance)}
+                  >
+                    💃 {dance.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ Joints ═══ */}
+          <div className="ps-card ps-card--joints">
+            <div className="ps-card-header">
+              <h3 className="ps-card-title">{t("pose.jointsPanelTitle")}</h3>
               <div className="ps-joint-controls">
                 <label className="ps-toggle ps-toggle--compact">
                   <input type="checkbox" checked={expert} onChange={(e) => setExpert(e.target.checked)} />
@@ -476,69 +486,71 @@ export default function PoseStudio() {
                 )}
               </div>
             </div>
-            {!wasmReady && !wasmViewerError && <p className="muted">{t("pose.wasmSlidersHint")}</p>}
-            {filteredGroups.map((g) => {
-              const isCollapsed = collapsedGroups.has(g.name);
-              return (
-                <div key={g.name} className="ps-joint-group">
-                  <button
-                    type="button"
-                    className="ps-joint-group-header"
-                    onClick={() => toggleGroupCollapse(g.name)}
-                    aria-expanded={!isCollapsed}
-                  >
-                    <svg
-                      className={`ps-chevron${isCollapsed ? "" : " ps-chevron--open"}`}
-                      width="12" height="12" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" strokeWidth="2.5"
+            <div className="ps-card-body ps-joints-scroll">
+              {!wasmReady && !wasmViewerError && <p className="muted">{t("pose.wasmSlidersHint")}</p>}
+              {filteredGroups.map((g) => {
+                const isCollapsed = collapsedGroups.has(g.name);
+                return (
+                  <div key={g.name} className="ps-joint-group">
+                    <button
+                      type="button"
+                      className="ps-joint-group-header"
+                      onClick={() => toggleGroupCollapse(g.name)}
+                      aria-expanded={!isCollapsed}
                     >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                    <span>{g.name}</span>
-                    <span className="ps-joint-count">{g.indices.length}</span>
-                  </button>
-                  {!isCollapsed && (
-                    <div className="ps-joint-group-body">
-                      {g.indices.map((i) => {
-                        const key = String(i);
-                        const skillKey = effectiveNames[key] ?? dash;
-                        const displayLabel = getJointLabel(skillKey, t);
-                        const r = wasmRanges[skillKey];
-                        const lo = r?.min ?? JOINT_SLIDER_RAD_MIN;
-                        const hi = r?.max ?? JOINT_SLIDER_RAD_MAX;
-                        const v = wasmJointRad[skillKey] ?? 0;
-                        return (
-                          <JointWasmSliderRow
-                            key={i}
-                            jointIndex={i}
-                            label={displayLabel}
-                            expertCanonicalLabel={skillKey}
-                            skillKey={skillKey}
-                            valueRad={v}
-                            minRad={lo}
-                            maxRad={hi}
-                            unit="deg"
-                            expert={expert}
-                            isSelected={selectedJointIndex === i}
-                            onActivate={() => {
-                              setSelectedJointIndex(i);
-                              setFilterGroupName(g.name);
-                            }}
-                            onChangeRad={onWasmJointChange}
-                            numberInputAriaLabel={t("pose.commandValueAria", { label: displayLabel })}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </aside>
+                      <svg
+                        className={`ps-chevron${isCollapsed ? "" : " ps-chevron--open"}`}
+                        width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" strokeWidth="2.5"
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                      <span>{g.name}</span>
+                      <span className="ps-joint-count">{g.indices.length}</span>
+                    </button>
+                    {!isCollapsed && (
+                      <div className="ps-joint-group-body">
+                        {g.indices.map((i) => {
+                          const key = String(i);
+                          const skillKey = effectiveNames[key] ?? dash;
+                          const displayLabel = getJointLabel(skillKey, t);
+                          const r = wasmRanges[skillKey];
+                          const lo = r?.min ?? JOINT_SLIDER_RAD_MIN;
+                          const hi = r?.max ?? JOINT_SLIDER_RAD_MAX;
+                          const v = wasmJointRad[skillKey] ?? 0;
+                          return (
+                            <JointWasmSliderRow
+                              key={i}
+                              jointIndex={i}
+                              label={displayLabel}
+                              expertCanonicalLabel={skillKey}
+                              skillKey={skillKey}
+                              valueRad={v}
+                              minRad={lo}
+                              maxRad={hi}
+                              unit="deg"
+                              expert={expert}
+                              isSelected={selectedJointIndex === i}
+                              onActivate={() => {
+                                setSelectedJointIndex(i);
+                                setFilterGroupName(g.name);
+                              }}
+                              onChangeRad={onWasmJointChange}
+                              numberInputAriaLabel={t("pose.commandValueAria", { label: displayLabel })}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* ═══ ERRORS ═══ */}
           {(wasmViewerError || loadError) && (
-            <div className="ps-section panel ps-error-panel" aria-live="polite">
+            <div className="ps-card ps-error-panel" aria-live="polite">
               {wasmViewerError && (
                 <p className="err" style={{ margin: 0, wordBreak: "break-word" }}>{wasmViewerError}</p>
               )}
