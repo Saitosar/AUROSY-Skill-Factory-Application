@@ -12,6 +12,8 @@ export type MuJoCoG1ViewerProps = {
   physicsEnabled?: boolean;
   /** When true (requires physicsEnabled), pelvis is NOT pinned — robot can fall. */
   freeStand?: boolean;
+  /** When true (requires freeStand), legs auto-adjust to keep the robot balanced. */
+  autoBalance?: boolean;
   onReady?: (ctx: { model: unknown; data: unknown; mujoco: unknown }) => void;
   onError?: (e: Error) => void;
 };
@@ -126,10 +128,115 @@ type BodyGroup = THREE.Group & { bodyID: number };
 /** Number of mj_step sub-steps per animation frame (~60 fps → 5 steps × 0.002s = 0.01s/frame). */
 const PHYSICS_STEPS_PER_FRAME = 5;
 
+// ── Auto-balance controller ──────────────────────────────────────────────────
+// Actuator indices (matching SKILL_KEYS_IN_JOINT_MAP_ORDER / MENAGERIE_JOINT_NAMES):
+const L_HIP_PITCH = 0;
+const L_HIP_ROLL  = 1;
+const L_KNEE      = 3;
+const L_ANKLE_PITCH = 4;
+const L_ANKLE_ROLL  = 5;
+const R_HIP_PITCH = 6;
+const R_HIP_ROLL  = 7;
+const R_KNEE      = 9;
+const R_ANKLE_PITCH = 10;
+const R_ANKLE_ROLL  = 11;
+
+/** Balance gains — tuned for G1 standing on flat ground. */
+const BAL = {
+  /** Proportional gain: pelvis pitch → hip/ankle pitch correction. */
+  kpPitch: 4.0,
+  /** Proportional gain: pelvis roll → hip/ankle roll correction. */
+  kpRoll: 3.0,
+  /** Derivative gain: angular velocity damping. */
+  kdPitch: 0.8,
+  kdRoll: 0.6,
+  /** Minimum knee bend (rad) to keep legs springy. */
+  kneeMin: 0.15,
+  /** How much ankle compensates relative to hip (0–1). */
+  ankleRatio: 0.6,
+};
+
+/**
+ * Compute balance corrections for leg joints based on pelvis orientation.
+ * Reads qpos (quaternion) and qvel (angular velocity) of the floating base,
+ * then writes corrective offsets into ctrl for hip/ankle joints.
+ *
+ * Strategy:
+ *  - Small tilt → ankle correction (shift pressure)
+ *  - Larger tilt → hip correction (shift CoM)
+ *  - Angular velocity damping prevents oscillation
+ */
+function applyAutoBalance(
+  data: MuJoCoData,
+  model: MuJoCoModel,
+): void {
+  const qpos = data.qpos;
+  const qvel = data.qvel;
+  const ctrl = data.ctrl;
+
+  // Pelvis quaternion (qpos[3..6] = w,x,y,z)
+  const qw = qposVecGet(qpos, 3) ?? 1;
+  const qx = qposVecGet(qpos, 4) ?? 0;
+  const qy = qposVecGet(qpos, 5) ?? 0;
+  const qz = qposVecGet(qpos, 6) ?? 0;
+
+  // Extract pitch (forward/back tilt) and roll (side tilt) from quaternion
+  // pitch = rotation around Y axis (MuJoCo frame)
+  const sinPitch = 2 * (qw * qy - qz * qx);
+  const pitch = Math.abs(sinPitch) >= 1
+    ? Math.sign(sinPitch) * Math.PI / 2
+    : Math.asin(sinPitch);
+  // roll = rotation around X axis
+  const sinRollCosPitch = 2 * (qw * qx + qy * qz);
+  const cosRollCosPitch = 1 - 2 * (qx * qx + qy * qy);
+  const roll = Math.atan2(sinRollCosPitch, cosRollCosPitch);
+
+  // Angular velocity damping (qvel[3] = wx, qvel[4] = wy for floating base)
+  const wx = qposVecGet(qvel, 3) ?? 0; // roll rate
+  const wy = qposVecGet(qvel, 4) ?? 0; // pitch rate
+
+  // PD corrections
+  const pitchCorr = BAL.kpPitch * pitch + BAL.kdPitch * wy;
+  const rollCorr  = BAL.kpRoll  * roll  + BAL.kdRoll  * wx;
+
+  // Hip pitch: lean hips to shift CoM back over feet
+  const hipPitchAdj = pitchCorr;
+  const anklePitchAdj = -pitchCorr * BAL.ankleRatio;
+  const hipRollAdj = rollCorr;
+  const ankleRollAdj = -rollCorr * BAL.ankleRatio;
+
+  // Read current user targets for legs
+  const lhp = qposVecGet(ctrl, L_HIP_PITCH) ?? 0;
+  const rhp = qposVecGet(ctrl, R_HIP_PITCH) ?? 0;
+  const lhr = qposVecGet(ctrl, L_HIP_ROLL) ?? 0;
+  const rhr = qposVecGet(ctrl, R_HIP_ROLL) ?? 0;
+  const lap = qposVecGet(ctrl, L_ANKLE_PITCH) ?? 0;
+  const rap = qposVecGet(ctrl, R_ANKLE_PITCH) ?? 0;
+  const lar = qposVecGet(ctrl, L_ANKLE_ROLL) ?? 0;
+  const rar = qposVecGet(ctrl, R_ANKLE_ROLL) ?? 0;
+  const lk  = qposVecGet(ctrl, L_KNEE) ?? 0;
+  const rk  = qposVecGet(ctrl, R_KNEE) ?? 0;
+
+  // Apply corrections (additive to user targets)
+  qposVecSet(ctrl, L_HIP_PITCH, lhp + hipPitchAdj);
+  qposVecSet(ctrl, R_HIP_PITCH, rhp + hipPitchAdj);
+  qposVecSet(ctrl, L_HIP_ROLL,  lhr + hipRollAdj);
+  qposVecSet(ctrl, R_HIP_ROLL,  rhr + hipRollAdj);
+  qposVecSet(ctrl, L_ANKLE_PITCH, lap + anklePitchAdj);
+  qposVecSet(ctrl, R_ANKLE_PITCH, rap + anklePitchAdj);
+  qposVecSet(ctrl, L_ANKLE_ROLL, lar + ankleRollAdj);
+  qposVecSet(ctrl, R_ANKLE_ROLL, rar + ankleRollAdj);
+
+  // Keep knees slightly bent for stability
+  qposVecSet(ctrl, L_KNEE, Math.max(lk, BAL.kneeMin));
+  qposVecSet(ctrl, R_KNEE, Math.max(rk, BAL.kneeMin));
+}
+
 function MuJoCoG1Scene({
   jointRad,
   physicsEnabled = false,
   freeStand = false,
+  autoBalance = false,
   onReady,
   onError,
 }: Omit<MuJoCoG1ViewerProps, never>) {
@@ -149,6 +256,8 @@ function MuJoCoG1Scene({
   physicsRef.current = physicsEnabled;
   const freeStandRef = useRef(freeStand);
   freeStandRef.current = freeStand;
+  const autoBalanceRef = useRef(autoBalance);
+  autoBalanceRef.current = autoBalance;
   const [initErr, setInitErr] = useState<Error | null>(null);
   const { invalidate } = useThree();
   const onReadyRef = useRef(onReady);
@@ -319,6 +428,11 @@ function MuJoCoG1Scene({
         qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
       }
 
+      // Auto-balance: adjust leg ctrl to keep robot upright (only in freeStand mode).
+      if (freeStandRef.current && autoBalanceRef.current) {
+        applyAutoBalance(data, model);
+      }
+
       for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
         if (pinBase) {
           // Pin floating base BEFORE step — pelvis stays fixed in space.
@@ -397,7 +511,7 @@ function MuJoCoG1Scene({
   return <primitive object={robotRoot} />;
 }
 
-export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, onReady, onError }: MuJoCoG1ViewerProps) {
+export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, autoBalance, onReady, onError }: MuJoCoG1ViewerProps) {
   const [loadErr, setLoadErr] = useState<Error | null>(null);
   const handleReady = useCallback(
     (ctx: { model: unknown; data: unknown; mujoco: unknown }) => {
@@ -453,7 +567,7 @@ export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, on
         <ambientLight intensity={0.6} />
         <directionalLight castShadow position={[5, 5, 5]} intensity={1.2} shadow-mapSize={[1024, 1024]} />
         <directionalLight position={[-3, -3, 2]} intensity={0.4} />
-        <MuJoCoG1Scene jointRad={jointRad} physicsEnabled={physicsEnabled} freeStand={freeStand} onReady={handleReady} onError={handleError} />
+        <MuJoCoG1Scene jointRad={jointRad} physicsEnabled={physicsEnabled} freeStand={freeStand} autoBalance={autoBalance} onReady={handleReady} onError={handleError} />
         <OrbitControls
           makeDefault
           enableDamping

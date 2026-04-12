@@ -1307,6 +1307,11 @@ table.data td.num {
   background: rgba(127, 29, 29, 0.75);
 }
 
+.pose-studio-balance-toggle {
+  top: 3.5rem;
+  background: rgba(22, 101, 52, 0.82);
+}
+
 /* 3D MuJoCo: R3F Canvas + absolutely positioned canvas fill the grid cell. */
 .pose-studio-visual--wasm {
   min-height: 0;

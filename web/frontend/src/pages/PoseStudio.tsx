@@ -52,6 +52,7 @@ export default function PoseStudio() {
   const wasmMotionCancelRef = useRef(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
   const [freeStand, setFreeStand] = useState(false);
+  const [autoBalance, setAutoBalance] = useState(true);
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
@@ -248,6 +249,7 @@ export default function PoseStudio() {
                 jointRad={wasmJointRad}
                 physicsEnabled={physicsEnabled}
                 freeStand={freeStand}
+                autoBalance={autoBalance}
                 onReady={onWasmReady}
                 onError={(e) => {
                   setWasmViewerError(e.message);
@@ -271,6 +273,16 @@ export default function PoseStudio() {
                   onChange={(e) => setFreeStand(e.target.checked)}
                 />
                 {" Free Stand"}
+              </label>
+            )}
+            {physicsEnabled && freeStand && (
+              <label className="pose-studio-physics-toggle pose-studio-balance-toggle">
+                <input
+                  type="checkbox"
+                  checked={autoBalance}
+                  onChange={(e) => setAutoBalance(e.target.checked)}
+                />
+                {" Auto Balance"}
               </label>
             )}
           </div>
