@@ -371,18 +371,26 @@ export default function PoseStudio() {
 
           <div className="ps-minibar-divider" />
 
-          <div className="ps-minibar-group">
+          {/* ── Motion Library ── */}
+          <div className="ps-motion-library">
+            <div className="ps-motion-library-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+              <span>Motion Library</span>
+            </div>
             {DANCE_LIBRARY.map((dance) => (
               <button
                 key={dance.name}
                 type="button"
-                className={`ps-minibar-btn${activeDanceName === dance.name ? " ps-minibar-btn--active" : ""}`}
+                className={`ps-motion-card${activeDanceName === dance.name ? " ps-motion-card--active" : ""}`}
                 disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
                 onClick={() => void playDance(dance)}
                 title={dance.name}
               >
-                <span style={{ fontSize: "16px" }}>💃</span>
-                <span>{dance.name.length > 6 ? dance.name.slice(0, 5) + "…" : dance.name}</span>
+                <span className="ps-motion-card-icon">
+                  {dance.name === "Lezginka" ? "🔥" : "👋"}
+                </span>
+                <span className="ps-motion-card-name">{dance.name}</span>
+                <svg className="ps-motion-card-play" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               </button>
             ))}
           </div>
@@ -409,7 +417,7 @@ export default function PoseStudio() {
             />
             <button
               type="button"
-              className="ps-kf-icon-btn"
+              className="ps-kf-icon-btn ps-kf-icon-btn--save"
               disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying}
               onClick={() => void saveWasmDraft()}
               title={t("pose.saveDraft")}
@@ -418,7 +426,7 @@ export default function PoseStudio() {
             </button>
             <button
               type="button"
-              className="ps-kf-icon-btn"
+              className="ps-kf-icon-btn ps-kf-icon-btn--download"
               disabled={!keyframesListForExport?.length || wasmMotionPlaying}
               onClick={downloadSdkPoseJson}
               title={t("pose.downloadSdkPoseJson")}
