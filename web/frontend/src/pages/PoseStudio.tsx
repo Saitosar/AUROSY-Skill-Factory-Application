@@ -291,7 +291,30 @@ export default function PoseStudio() {
       <PageHeader title={t("pose.title")} description={t("pose.lead")} />
 
       <div className="pose-studio-layout">
-        {/* ── Left: Mini Control Bar (inspired by smart-home sidebar) ── */}
+        {/* ── Full-screen 3D Viewer (background layer) ── */}
+        <div className="ps-stage">
+          <Suspense fallback={<p className="muted">{t("pose.wasmLoading")}</p>}>
+            <MuJoCoG1Viewer
+              jointRad={wasmJointRad}
+              physicsEnabled={physicsEnabled}
+              freeStand={freeStand}
+              autoBalance={autoBalance}
+              onReady={onWasmReady}
+              onError={(e) => {
+                setWasmViewerError(e.message);
+                setWasmReady(false);
+              }}
+            />
+          </Suspense>
+          {dancePlaying && activeDanceName && (
+            <div className="pose-studio-playing-badge">
+              <span className="pose-studio-playing-dot" />
+              {activeDanceName}
+            </div>
+          )}
+        </div>
+
+        {/* ── Left: Mini Control Bar (overlay) ── */}
         <nav className="ps-minibar" aria-label="Quick controls">
           <div className="ps-minibar-group">
             <button
@@ -300,7 +323,7 @@ export default function PoseStudio() {
               onClick={() => setPhysicsEnabled(!physicsEnabled)}
               title="Physics"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               <span>Physics</span>
             </button>
             <button
@@ -309,7 +332,7 @@ export default function PoseStudio() {
               onClick={() => physicsEnabled && setFreeStand(!freeStand)}
               title="Free Stand"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a2 2 0 100 4 2 2 0 000-4zM10 22V12M14 22V12M7 8h10"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a2 2 0 100 4 2 2 0 000-4zM10 22V12M14 22V12M7 8h10"/></svg>
               <span>Free</span>
             </button>
             <button
@@ -318,7 +341,7 @@ export default function PoseStudio() {
               onClick={() => physicsEnabled && freeStand && setAutoBalance(!autoBalance)}
               title="Auto Balance"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v18M3 12h18M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v18M3 12h18M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
               <span>Balance</span>
             </button>
           </div>
@@ -333,7 +356,7 @@ export default function PoseStudio() {
               onClick={addWasmPose}
               title={t("pose.addPose")}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
               <span>Pose</span>
               {savedWasmPoses.length > 0 && (
                 <span className="ps-minibar-badge">{savedWasmPoses.length}</span>
@@ -346,7 +369,7 @@ export default function PoseStudio() {
               onClick={() => void playWasmMotion()}
               title={t("pose.createMotion")}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               <span>Play</span>
             </button>
             <button
@@ -356,42 +379,33 @@ export default function PoseStudio() {
               onClick={stopWasmMotion}
               title={t("pose.stopMotion")}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="6" width="12" height="12"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="6" width="12" height="12"/></svg>
               <span>Stop</span>
             </button>
           </div>
+
+          <div className="ps-minibar-divider" />
+
+          <div className="ps-minibar-group">
+            {DANCE_LIBRARY.map((dance) => (
+              <button
+                key={dance.name}
+                type="button"
+                className={`ps-minibar-btn${activeDanceName === dance.name ? " ps-minibar-btn--active" : ""}`}
+                disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
+                onClick={() => void playDance(dance)}
+                title={dance.name}
+              >
+                <span style={{ fontSize: "16px" }}>💃</span>
+                <span>{dance.name.length > 6 ? dance.name.slice(0, 5) + "…" : dance.name}</span>
+              </button>
+            ))}
+          </div>
         </nav>
 
-        {/* ── Center: 3D Viewer (main stage) ── */}
-        <section className="ps-viewer" aria-label={t("pose.wasmViewerAria")}>
-          <div className="pose-studio-wasm-host">
-            <Suspense fallback={<p className="muted">{t("pose.wasmLoading")}</p>}>
-              <MuJoCoG1Viewer
-                jointRad={wasmJointRad}
-                physicsEnabled={physicsEnabled}
-                freeStand={freeStand}
-                autoBalance={autoBalance}
-                onReady={onWasmReady}
-                onError={(e) => {
-                  setWasmViewerError(e.message);
-                  setWasmReady(false);
-                }}
-              />
-            </Suspense>
-            {/* Dance playing overlay */}
-            {dancePlaying && activeDanceName && (
-              <div className="pose-studio-playing-badge">
-                <span className="pose-studio-playing-dot" />
-                {activeDanceName}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ── Right: Control Panel ── */}
+        {/* ── Right: Control Panel (overlay) ── */}
         <div className="ps-control-panel">
-
-          {/* ═══ Keyframes ═══ */}
+          {/* Keyframes card */}
           <div className="ps-card">
             <div className="ps-card-header">
               <h3 className="ps-card-title">
@@ -443,29 +457,7 @@ export default function PoseStudio() {
             </div>
           </div>
 
-          {/* ═══ Dances ═══ */}
-          <div className="ps-card">
-            <div className="ps-card-header">
-              <h3 className="ps-card-title">Dances</h3>
-            </div>
-            <div className="ps-card-body">
-              <div className="ps-dance-grid">
-                {DANCE_LIBRARY.map((dance) => (
-                  <button
-                    key={dance.name}
-                    type="button"
-                    className={`ps-btn ps-btn--dance${activeDanceName === dance.name ? " ps-btn--dance-active" : ""}`}
-                    disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
-                    onClick={() => void playDance(dance)}
-                  >
-                    💃 {dance.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ═══ Joints ═══ */}
+          {/* Joints card */}
           <div className="ps-card ps-card--joints">
             <div className="ps-card-header">
               <h3 className="ps-card-title">{t("pose.jointsPanelTitle")}</h3>
@@ -548,7 +540,7 @@ export default function PoseStudio() {
             </div>
           </div>
 
-          {/* ═══ ERRORS ═══ */}
+          {/* Errors */}
           {(wasmViewerError || loadError) && (
             <div className="ps-card ps-error-panel" aria-live="polite">
               {wasmViewerError && (
