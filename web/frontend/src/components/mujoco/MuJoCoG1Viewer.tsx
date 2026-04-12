@@ -126,8 +126,25 @@ function createGeometryForType(
 
 type BodyGroup = THREE.Group & { bodyID: number };
 
-/** Number of mj_step sub-steps per animation frame (~60 fps → 5 steps × 0.002s = 0.01s/frame). */
-const PHYSICS_STEPS_PER_FRAME = 5;
+/**
+ * Frame-rate independent physics: calculate sub-steps from elapsed real time.
+ * At 60fps → ~8 steps, at 30fps → ~17 steps, always ≈1:1 sim/real time.
+ */
+const SIM_DT = 0.002; // model.opt.timestep for G1
+const MAX_PHYSICS_DT = 0.05; // cap elapsed time at 50ms (20fps minimum)
+const MAX_STEPS_PER_FRAME = 20;
+let _lastPhysicsTime = 0;
+
+function calcPhysicsSteps(): number {
+  const now = performance.now() / 1000;
+  if (_lastPhysicsTime <= 0) {
+    _lastPhysicsTime = now;
+    return Math.round(0.016 / SIM_DT); // first frame: assume ~60fps
+  }
+  const elapsed = Math.min(now - _lastPhysicsTime, MAX_PHYSICS_DT);
+  _lastPhysicsTime = now;
+  return Math.max(1, Math.min(MAX_STEPS_PER_FRAME, Math.round(elapsed / SIM_DT)));
+}
 
 // ── Auto-balance controller ──────────────────────────────────────────────────
 // Actuator indices (matching SKILL_KEYS_IN_JOINT_MAP_ORDER / MENAGERIE_JOINT_NAMES):
@@ -531,7 +548,8 @@ function MuJoCoG1Scene({
         }).catch(() => { /* ignore inference errors */ });
       }
 
-      for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
+      const nSteps = calcPhysicsSteps();
+      for (let s = 0; s < nSteps; s++) {
         if (pinBase) {
           // Pin floating base BEFORE step — pelvis stays fixed in space.
           qposVecSet(qpos, 0, 0);     // x
@@ -573,6 +591,8 @@ function MuJoCoG1Scene({
       // Recompute xpos/xquat for rendering.
       (mujoco as { mj_forward: (m: unknown, d: unknown) => void }).mj_forward(model, data);
     } else {
+      // Reset physics timer so next physics-on doesn't get a huge delta.
+      _lastPhysicsTime = 0;
       // Kinematic mode (original): write directly to qpos, then mj_forward.
       const qpos = data.qpos;
       for (const key of SKILL_KEYS_IN_JOINT_MAP_ORDER) {
