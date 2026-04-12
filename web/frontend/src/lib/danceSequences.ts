@@ -45,44 +45,47 @@ const d = (deg: number) => (deg * Math.PI) / 180;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LEZGINKA DANCE
-// Based on Caucasian folk dance movements adapted for G1 robot (29 DoF).
-// Key elements: chest up, arms wide, alternating knee lifts, waist rotations.
+// Empirically verified in native MuJoCo with full gravity (test_dance_pitch_only.py).
+// 3 full loops, 42 transitions, 0 falls.
+//
+// ONE-LEG STABILITY RECIPE (from exhaustive sweep test_oneleg_sweep.py):
+//   LIFT RIGHT: standing_hip_roll(L)=-14°, waist_roll=-3°, hip_pitch=-10°, knee=30°
+//   LIFT LEFT:  standing_hip_roll(R)=+14°, waist_roll=+3°, hip_pitch=-10°, knee=30°
+//
+// Key design rules:
+//   1. hip_roll=-14°/+14° on standing leg shifts CoM over the foot
+//   2. Leg lifts limited to hip_pitch=-10°, knee=30° (proven stable)
+//   3. Direct two-leg→one-leg transitions (cosine easing handles gradual shift)
+//   4. Both-feet recovery after each lift to reset balance
+//   5. Dramatic ARM movements carry the Lezginka visual identity
+//   6. NO roll PD controller — it creates positive feedback with hip_roll
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const LEZGINKA: DanceSequence = {
   name: "Lezginka",
   loops: 3,
   keyframes: [
-    // ── Start: proud standing pose, arms wide ──
+    // ── 1. Opening: proud stance, arms wide ──
     {
       duration: 1.0,
-      label: "Start — proud stance",
+      label: "Proud stance",
       pose: pose({
-        // Slight knee bend for stability
-        left_knee: d(10), right_knee: d(10),
-        // Arms out to sides (shoulder roll) and slightly up
+        left_knee: d(12), right_knee: d(12),
         left_shoulder_pitch: d(-30), left_shoulder_roll: d(60),
         right_shoulder_pitch: d(-30), right_shoulder_roll: d(-60),
-        // Elbows slightly bent
         left_elbow: d(30), right_elbow: d(30),
-        // Wrists up (like holding a tray)
         left_wrist_pitch: d(-20), right_wrist_pitch: d(-20),
       }),
     },
 
-    // ── Beat 1: Right knee lift + waist turn left ──
+    // ── 2. Right knee up (standing on left, hip_roll=-14°) ──
     {
-      duration: 0.4,
-      label: "Right knee lift",
+      duration: 0.8,
+      label: "Right knee up",
       pose: pose({
-        // Standing leg — slight bend for balance
-        left_knee: d(15), left_hip_pitch: d(-5),
-        // Lifted leg
-        right_hip_pitch: d(-40), right_knee: d(60),
-        right_ankle_pitch: d(-15),
-        // Waist turn
-        waist_yaw: d(20),
-        // Arms
+        left_knee: d(15), left_hip_roll: d(-14),
+        right_hip_pitch: d(-10), right_knee: d(30),
+        waist_roll: d(-3), waist_yaw: d(15),
         left_shoulder_pitch: d(-50), left_shoulder_roll: d(70),
         right_shoulder_pitch: d(-20), right_shoulder_roll: d(-40),
         left_elbow: d(40), right_elbow: d(20),
@@ -90,33 +93,27 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── Beat 2: Right foot stamp (back down, sharp) ──
+    // ── 3. Right stamp (both feet) ──
     {
-      duration: 0.25,
+      duration: 0.5,
       label: "Right stamp",
       pose: pose({
         left_knee: d(12), right_knee: d(12),
-        waist_yaw: d(10),
-        // Arms snap in
+        waist_yaw: d(8),
         left_shoulder_pitch: d(-35), left_shoulder_roll: d(50),
         right_shoulder_pitch: d(-35), right_shoulder_roll: d(-50),
         left_elbow: d(35), right_elbow: d(35),
       }),
     },
 
-    // ── Beat 3: Left knee lift + waist turn right ──
+    // ── 4. Left knee up (standing on right, hip_roll=+14°) ──
     {
-      duration: 0.4,
-      label: "Left knee lift",
+      duration: 0.8,
+      label: "Left knee up",
       pose: pose({
-        // Standing leg
-        right_knee: d(15), right_hip_pitch: d(-5),
-        // Lifted leg
-        left_hip_pitch: d(-40), left_knee: d(60),
-        left_ankle_pitch: d(-15),
-        // Waist turn
-        waist_yaw: d(-20),
-        // Arms mirror
+        right_knee: d(15), right_hip_roll: d(14),
+        left_hip_pitch: d(-10), left_knee: d(30),
+        waist_roll: d(3), waist_yaw: d(-15),
         right_shoulder_pitch: d(-50), right_shoulder_roll: d(-70),
         left_shoulder_pitch: d(-20), left_shoulder_roll: d(40),
         right_elbow: d(40), left_elbow: d(20),
@@ -124,27 +121,26 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── Beat 4: Left foot stamp ──
+    // ── 5. Left stamp (both feet) ──
     {
-      duration: 0.25,
+      duration: 0.5,
       label: "Left stamp",
       pose: pose({
         left_knee: d(12), right_knee: d(12),
-        waist_yaw: d(-10),
+        waist_yaw: d(-8),
         left_shoulder_pitch: d(-35), left_shoulder_roll: d(50),
         right_shoulder_pitch: d(-35), right_shoulder_roll: d(-50),
         left_elbow: d(35), right_elbow: d(35),
       }),
     },
 
-    // ── Beat 5: Arms up, chest proud ──
+    // ── 6. Arms rise (both feet, chest proud) ──
     {
       duration: 0.5,
       label: "Arms rise",
       pose: pose({
-        left_knee: d(10), right_knee: d(10),
-        waist_pitch: d(-5), // chest out
-        // Arms high
+        left_knee: d(12), right_knee: d(12),
+        waist_pitch: d(-4),
         left_shoulder_pitch: d(-80), left_shoulder_roll: d(40),
         right_shoulder_pitch: d(-80), right_shoulder_roll: d(-40),
         left_elbow: d(50), right_elbow: d(50),
@@ -152,114 +148,103 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── Beat 6: Quick right knee + waist spin ──
+    // ── 7. Right lift + turn (standing on left) ──
     {
-      duration: 0.35,
-      label: "Quick right lift + spin",
+      duration: 0.8,
+      label: "Right lift turn",
       pose: pose({
-        left_knee: d(15),
-        right_hip_pitch: d(-35), right_knee: d(50),
-        waist_yaw: d(35),
-        waist_roll: d(5),
-        left_shoulder_pitch: d(-60), left_shoulder_roll: d(80),
-        right_shoulder_pitch: d(-30), right_shoulder_roll: d(-30),
+        left_knee: d(15), left_hip_roll: d(-14),
+        right_hip_pitch: d(-10), right_knee: d(30),
+        waist_yaw: d(20), waist_roll: d(-3),
+        left_shoulder_pitch: d(-60), left_shoulder_roll: d(70),
+        right_shoulder_pitch: d(-30), right_shoulder_roll: d(-35),
         left_elbow: d(45), right_elbow: d(25),
       }),
     },
 
-    // ── Beat 7: Both feet down, arms sweep ──
+    // ── 8. Recovery (both feet) ──
     {
-      duration: 0.3,
-      label: "Recovery + arm sweep",
+      duration: 0.5,
+      label: "Recovery",
       pose: pose({
-        left_knee: d(15), right_knee: d(15),
-        waist_yaw: d(0),
-        // Arms sweep down and out
-        left_shoulder_pitch: d(10), left_shoulder_roll: d(70),
-        right_shoulder_pitch: d(10), right_shoulder_roll: d(-70),
+        left_knee: d(14), right_knee: d(14),
+        left_shoulder_pitch: d(10), left_shoulder_roll: d(65),
+        right_shoulder_pitch: d(10), right_shoulder_roll: d(-65),
         left_elbow: d(15), right_elbow: d(15),
       }),
     },
 
-    // ── Beat 8: Quick left knee + waist spin ──
+    // ── 9. Left lift + turn (standing on right) ──
     {
-      duration: 0.35,
-      label: "Quick left lift + spin",
+      duration: 0.8,
+      label: "Left lift turn",
       pose: pose({
-        right_knee: d(15),
-        left_hip_pitch: d(-35), left_knee: d(50),
-        waist_yaw: d(-35),
-        waist_roll: d(-5),
-        right_shoulder_pitch: d(-60), right_shoulder_roll: d(-80),
-        left_shoulder_pitch: d(-30), left_shoulder_roll: d(30),
+        right_knee: d(15), right_hip_roll: d(14),
+        left_hip_pitch: d(-10), left_knee: d(30),
+        waist_yaw: d(-20), waist_roll: d(3),
+        right_shoulder_pitch: d(-60), right_shoulder_roll: d(-70),
+        left_shoulder_pitch: d(-30), left_shoulder_roll: d(35),
         right_elbow: d(45), left_elbow: d(25),
       }),
     },
 
-    // ── Beat 9: Sharp return to center ──
+    // ── 10. Center snap (both feet) ──
     {
-      duration: 0.3,
+      duration: 0.4,
       label: "Center snap",
       pose: pose({
         left_knee: d(12), right_knee: d(12),
-        // Arms wide and proud
-        left_shoulder_pitch: d(-40), left_shoulder_roll: d(65),
-        right_shoulder_pitch: d(-40), right_shoulder_roll: d(-65),
+        left_shoulder_pitch: d(-40), left_shoulder_roll: d(60),
+        right_shoulder_pitch: d(-40), right_shoulder_roll: d(-60),
         left_elbow: d(35), right_elbow: d(35),
         left_wrist_pitch: d(-20), right_wrist_pitch: d(-20),
       }),
     },
 
-    // ── Beat 10: Deep right step with torso lean ──
+    // ── 11. Sway right (both feet) ──
     {
       duration: 0.5,
-      label: "Deep right step",
+      label: "Sway right",
       pose: pose({
-        left_knee: d(8),
-        right_hip_pitch: d(-15), right_knee: d(35),
-        right_hip_roll: d(-10),
-        waist_roll: d(10),
-        waist_yaw: d(15),
-        left_shoulder_pitch: d(-70), left_shoulder_roll: d(50),
-        right_shoulder_pitch: d(-20), right_shoulder_roll: d(-60),
-        left_elbow: d(50), right_elbow: d(30),
+        left_knee: d(10), right_knee: d(16),
+        waist_roll: d(4), waist_yaw: d(12),
+        left_shoulder_pitch: d(-65), left_shoulder_roll: d(50),
+        right_shoulder_pitch: d(-20), right_shoulder_roll: d(-55),
+        left_elbow: d(45), right_elbow: d(30),
       }),
     },
 
-    // ── Beat 11: Deep left step with torso lean ──
+    // ── 12. Sway left (both feet) ──
     {
       duration: 0.5,
-      label: "Deep left step",
+      label: "Sway left",
       pose: pose({
-        right_knee: d(8),
-        left_hip_pitch: d(-15), left_knee: d(35),
-        left_hip_roll: d(10),
-        waist_roll: d(-10),
-        waist_yaw: d(-15),
-        right_shoulder_pitch: d(-70), right_shoulder_roll: d(-50),
-        left_shoulder_pitch: d(-20), left_shoulder_roll: d(60),
-        right_elbow: d(50), left_elbow: d(30),
+        left_knee: d(16), right_knee: d(10),
+        waist_roll: d(-4), waist_yaw: d(-12),
+        right_shoulder_pitch: d(-65), right_shoulder_roll: d(-50),
+        left_shoulder_pitch: d(-20), left_shoulder_roll: d(55),
+        right_elbow: d(45), left_elbow: d(30),
       }),
     },
 
-    // ── Finale: proud stance, arms up ──
+    // ── 13. Finale: arms up proud ──
     {
       duration: 0.6,
-      label: "Finale — arms up",
+      label: "Finale",
       pose: pose({
-        left_knee: d(8), right_knee: d(8),
+        left_knee: d(10), right_knee: d(10),
         waist_pitch: d(-3),
-        left_shoulder_pitch: d(-90), left_shoulder_roll: d(30),
-        right_shoulder_pitch: d(-90), right_shoulder_roll: d(-30),
-        left_elbow: d(60), right_elbow: d(60),
-        left_wrist_pitch: d(-30), right_wrist_pitch: d(-30),
+        left_shoulder_pitch: d(-85), left_shoulder_roll: d(30),
+        right_shoulder_pitch: d(-85), right_shoulder_roll: d(-30),
+        left_elbow: d(55), right_elbow: d(55),
+        left_wrist_pitch: d(-25), right_wrist_pitch: d(-25),
       }),
     },
 
-    // ── Return to neutral ──
+    // ── 14. Return to neutral ──
     {
       duration: 0.8,
-      label: "Return to neutral",
+      label: "Return",
       pose: pose({
         left_knee: d(5), right_knee: d(5),
       }),

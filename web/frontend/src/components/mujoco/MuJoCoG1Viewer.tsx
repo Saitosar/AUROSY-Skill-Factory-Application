@@ -163,6 +163,11 @@ const BAL = {
   kneeMin: 0.15,
 };
 
+// NOTE: Roll PD was removed — it creates positive feedback with hip_roll poses.
+// Lateral balance is achieved by baking hip_roll offsets into dance keyframes
+// (e.g. hip_roll=-14° on standing leg shifts CoM over the foot).
+// Verified in test_dance_pitch_only.py: 3 loops, 42 transitions, 0 falls.
+
 const DEAD_ZONE = 0.01;
 const SMOOTH = 0.5;
 let _prevCorr = 0;
