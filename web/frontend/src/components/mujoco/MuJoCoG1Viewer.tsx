@@ -125,75 +125,82 @@ function createGeometryForType(
 
 type BodyGroup = THREE.Group & { bodyID: number };
 
-/** Number of mj_step sub-steps per animation frame (~60 fps → 10 steps × 0.002s = 0.02s/frame). */
-const PHYSICS_STEPS_PER_FRAME = 10;
+/** Number of mj_step sub-steps per animation frame (~60 fps → 5 steps × 0.002s = 0.01s/frame). */
+const PHYSICS_STEPS_PER_FRAME = 5;
 
 // ── Auto-balance controller ──────────────────────────────────────────────────
 // Actuator indices (matching SKILL_KEYS_IN_JOINT_MAP_ORDER / MENAGERIE_JOINT_NAMES):
 const L_HIP_PITCH = 0;
 const L_HIP_ROLL  = 1;
-const L_HIP_YAW   = 2;
 const L_KNEE      = 3;
 const L_ANKLE_PITCH = 4;
 const L_ANKLE_ROLL  = 5;
 const R_HIP_PITCH = 6;
 const R_HIP_ROLL  = 7;
-const R_HIP_YAW   = 8;
 const R_KNEE      = 9;
 const R_ANKLE_PITCH = 10;
 const R_ANKLE_ROLL  = 11;
-const WAIST_YAW   = 12;
-const WAIST_ROLL  = 13;
 const WAIST_PITCH = 14;
+const WAIST_ROLL  = 13;
 
-/** Balance gains — aggressive tuning for strong tilt recovery. */
-const BAL = {
-  // --- Proportional gains (how strongly to react to tilt) ---
-  kpPitch: 12.0,
-  kpRoll: 10.0,
-  // --- Derivative gains (damping angular velocity to prevent overshoot) ---
-  kdPitch: 2.5,
-  kdRoll: 2.0,
-  // --- Integral gains (accumulated error → eliminates steady-state tilt) ---
-  kiPitch: 1.5,
-  kiRoll: 1.0,
-  /** Max accumulated integral to prevent wind-up (rad·s). */
-  iMax: 0.8,
-  /** Minimum knee bend (rad) to keep legs springy and lower CoM. */
-  kneeMin: 0.25,
-  /** How much ankle compensates relative to hip (0–1). */
-  ankleRatio: 0.7,
-  /** How much waist counter-tilts to shift upper-body CoM (0–1). */
-  waistRatio: 0.3,
-  /** Hip yaw correction from roll (cross-coupling for lateral stability). */
-  yawFromRoll: 0.15,
-  /** Additional knee bend proportional to pitch magnitude (squat to lower CoM). */
-  kneeFromPitch: 0.5,
-  /** Max total correction per joint (rad) — safety clamp. */
-  maxCorr: 1.2,
-};
-
-// Integral accumulators (persistent across frames)
-let _iPitch = 0;
-let _iRoll = 0;
+/** Pelvis standing height from g1.xml — used to detect falls. */
+const PELVIS_STANDING_Z = 0.793;
+/** If pelvis z drops below this, consider the robot fallen → disable balance. */
+const FALL_HEIGHT = 0.4;
 
 /**
- * Full-body balance controller: PID on pelvis orientation + CoM compensation.
+ * Balance gains.
  *
- * Strategy layers:
- *  1. Ankle strategy (small tilts): shift center of pressure
- *  2. Hip strategy (medium tilts): shift CoM over support polygon
- *  3. Waist counter-tilt: lean upper body opposite to tilt
- *  4. Knee bend: lower CoM for wider stability margin
- *  5. Integral term: eliminate steady-state drift
+ * G1 hip_pitch axis = (0,1,0): positive rotation = leg goes backward.
+ * So when robot leans FORWARD (pitch > 0), hip correction must be NEGATIVE
+ * (bring legs forward to shift support base under CoM).
+ *
+ * G1 hip_roll axis = (1,0,0) for left: positive = leg goes inward (adducts).
+ * ankle_roll axis = (1,0,0): positive = foot inverts.
+ * ankle_pitch axis = (0,1,0): positive = dorsiflexion (foot tilts up at front).
+ */
+const BAL = {
+  kpPitch: 8.0,
+  kpRoll: 6.0,
+  kdPitch: 1.5,
+  kdRoll: 1.2,
+  /** Minimum knee bend (rad) to keep legs springy. */
+  kneeMin: 0.2,
+  /** How much ankle compensates (same direction as hip, 0–1). */
+  ankleRatio: 0.5,
+  /** Waist counter-tilt ratio. */
+  waistRatio: 0.25,
+  /** Additional knee bend from tilt magnitude. */
+  kneeFromTilt: 0.4,
+  /** Max correction per joint (rad). */
+  maxCorr: 0.8,
+};
+
+/**
+ * Balance controller: PD on pelvis tilt with correct sign conventions.
+ *
+ * When leaning forward (pitch > 0):
+ *  - Hip pitch correction = NEGATIVE (bring legs forward)
+ *  - Ankle pitch correction = POSITIVE (push toes down → center of pressure forward)
+ *  - Waist pitch = NEGATIVE (lean upper body back)
+ *
+ * When tilting right (roll > 0):
+ *  - Left hip roll = more positive (push left leg inward/under body)
+ *  - Right hip roll = more negative (push right leg outward for support)
+ *  - Ankles = opposite direction to shift pressure
+ *
+ * Falls detected: if pelvis z < FALL_HEIGHT, do nothing (prevent flailing).
  */
 function applyAutoBalance(
   data: MuJoCoData,
-  model: MuJoCoModel,
 ): void {
   const qpos = data.qpos;
   const qvel = data.qvel;
   const ctrl = data.ctrl;
+
+  // Fall detection: pelvis z (qpos[2])
+  const pz = qposVecGet(qpos, 2) ?? PELVIS_STANDING_Z;
+  if (pz < FALL_HEIGHT) return; // Robot has fallen — stop correcting.
 
   // Pelvis quaternion (qpos[3..6] = w,x,y,z)
   const qw = qposVecGet(qpos, 3) ?? 1;
@@ -201,7 +208,7 @@ function applyAutoBalance(
   const qy = qposVecGet(qpos, 5) ?? 0;
   const qz = qposVecGet(qpos, 6) ?? 0;
 
-  // Extract pitch (forward/back tilt) and roll (side tilt) from quaternion
+  // Extract pitch (forward tilt = positive) and roll (right tilt = positive)
   const sinPitch = 2 * (qw * qy - qz * qx);
   const pitch = Math.abs(sinPitch) >= 1
     ? Math.sign(sinPitch) * Math.PI / 2
@@ -210,46 +217,43 @@ function applyAutoBalance(
   const cosRollCosPitch = 1 - 2 * (qx * qx + qy * qy);
   const roll = Math.atan2(sinRollCosPitch, cosRollCosPitch);
 
-  // Angular velocity (qvel[3]=wx roll rate, qvel[4]=wy pitch rate, qvel[5]=wz yaw rate)
-  const wx = qposVecGet(qvel, 3) ?? 0;
-  const wy = qposVecGet(qvel, 4) ?? 0;
+  // Angular velocity damping
+  const wx = qposVecGet(qvel, 3) ?? 0; // roll rate
+  const wy = qposVecGet(qvel, 4) ?? 0; // pitch rate
 
-  // Update integral (with anti-windup clamping)
-  const dt = 0.002 * PHYSICS_STEPS_PER_FRAME; // effective frame dt
-  _iPitch = Math.max(-BAL.iMax, Math.min(BAL.iMax, _iPitch + pitch * dt));
-  _iRoll  = Math.max(-BAL.iMax, Math.min(BAL.iMax, _iRoll  + roll  * dt));
+  // PD error signals (positive = leaning that direction)
+  const pitchErr = BAL.kpPitch * pitch + BAL.kdPitch * wy;
+  const rollErr  = BAL.kpRoll  * roll  + BAL.kdRoll  * wx;
 
-  // PID corrections
-  const pitchCorr = BAL.kpPitch * pitch + BAL.kdPitch * wy + BAL.kiPitch * _iPitch;
-  const rollCorr  = BAL.kpRoll  * roll  + BAL.kdRoll  * wx + BAL.kiRoll  * _iRoll;
-
-  // Clamp total corrections
   const clamp = (v: number) => Math.max(-BAL.maxCorr, Math.min(BAL.maxCorr, v));
 
-  // --- Layer 1–2: Hip + Ankle ---
-  const hipPitchAdj   = clamp(pitchCorr);
-  const anklePitchAdj = clamp(-pitchCorr * BAL.ankleRatio);
-  const hipRollAdj    = clamp(rollCorr);
-  const ankleRollAdj  = clamp(-rollCorr * BAL.ankleRatio);
+  // ── Hip pitch: NEGATIVE correction when leaning forward ──
+  // Forward lean (pitch>0) → bring legs forward (negative hip pitch)
+  const hipPitchAdj = clamp(-pitchErr);
 
-  // --- Layer 3: Waist counter-tilt ---
-  const waistPitchAdj = clamp(-pitchCorr * BAL.waistRatio);
-  const waistRollAdj  = clamp(-rollCorr * BAL.waistRatio);
+  // ── Ankle pitch: POSITIVE correction when leaning forward ──
+  // Push center of pressure forward to match shifted CoM
+  const anklePitchAdj = clamp(pitchErr * BAL.ankleRatio);
 
-  // --- Layer 4: Adaptive knee bend (lower CoM under strong tilts) ---
+  // ── Hip roll: push legs to widen base toward the tilt side ──
+  const hipRollAdj = clamp(-rollErr);
+
+  // ── Ankle roll: opposite to hip for lateral pressure shift ──
+  const ankleRollAdj = clamp(rollErr * BAL.ankleRatio);
+
+  // ── Waist: lean upper body opposite to tilt ──
+  const waistPitchAdj = clamp(-pitchErr * BAL.waistRatio);
+  const waistRollAdj  = clamp(-rollErr  * BAL.waistRatio);
+
+  // ── Knee: bend more under stronger tilts to lower CoM ──
   const tiltMag = Math.sqrt(pitch * pitch + roll * roll);
-  const kneeBend = BAL.kneeMin + BAL.kneeFromPitch * tiltMag;
+  const kneeBend = BAL.kneeMin + BAL.kneeFromTilt * tiltMag;
 
-  // --- Layer 5: Yaw coupling (lateral push needs slight toe-out) ---
-  const yawAdj = clamp(roll * BAL.yawFromRoll);
-
-  // Read current user targets
+  // Read user targets from ctrl
   const lhp = qposVecGet(ctrl, L_HIP_PITCH) ?? 0;
   const rhp = qposVecGet(ctrl, R_HIP_PITCH) ?? 0;
   const lhr = qposVecGet(ctrl, L_HIP_ROLL) ?? 0;
   const rhr = qposVecGet(ctrl, R_HIP_ROLL) ?? 0;
-  const lhy = qposVecGet(ctrl, L_HIP_YAW) ?? 0;
-  const rhy = qposVecGet(ctrl, R_HIP_YAW) ?? 0;
   const lap = qposVecGet(ctrl, L_ANKLE_PITCH) ?? 0;
   const rap = qposVecGet(ctrl, R_ANKLE_PITCH) ?? 0;
   const lar = qposVecGet(ctrl, L_ANKLE_ROLL) ?? 0;
@@ -259,31 +263,21 @@ function applyAutoBalance(
   const wp  = qposVecGet(ctrl, WAIST_PITCH) ?? 0;
   const wr  = qposVecGet(ctrl, WAIST_ROLL) ?? 0;
 
-  // Apply corrections (additive to user targets)
+  // Apply additive corrections
   qposVecSet(ctrl, L_HIP_PITCH,   lhp + hipPitchAdj);
   qposVecSet(ctrl, R_HIP_PITCH,   rhp + hipPitchAdj);
   qposVecSet(ctrl, L_HIP_ROLL,    lhr + hipRollAdj);
   qposVecSet(ctrl, R_HIP_ROLL,    rhr + hipRollAdj);
-  qposVecSet(ctrl, L_HIP_YAW,     lhy + yawAdj);
-  qposVecSet(ctrl, R_HIP_YAW,     rhy - yawAdj);
   qposVecSet(ctrl, L_ANKLE_PITCH, lap + anklePitchAdj);
   qposVecSet(ctrl, R_ANKLE_PITCH, rap + anklePitchAdj);
   qposVecSet(ctrl, L_ANKLE_ROLL,  lar + ankleRollAdj);
   qposVecSet(ctrl, R_ANKLE_ROLL,  rar + ankleRollAdj);
+  qposVecSet(ctrl, WAIST_PITCH,   wp + waistPitchAdj);
+  qposVecSet(ctrl, WAIST_ROLL,    wr + waistRollAdj);
 
   // Adaptive knee bend
   qposVecSet(ctrl, L_KNEE, Math.max(lk, kneeBend));
   qposVecSet(ctrl, R_KNEE, Math.max(rk, kneeBend));
-
-  // Waist counter-tilt
-  qposVecSet(ctrl, WAIST_PITCH, wp + waistPitchAdj);
-  qposVecSet(ctrl, WAIST_ROLL,  wr + waistRollAdj);
-}
-
-/** Reset integral accumulators (call when balance mode is toggled off). */
-function resetBalanceIntegral(): void {
-  _iPitch = 0;
-  _iRoll = 0;
 }
 
 function MuJoCoG1Scene({
@@ -313,10 +307,6 @@ function MuJoCoG1Scene({
   const autoBalanceRef = useRef(autoBalance);
   autoBalanceRef.current = autoBalance;
 
-  // Reset integral accumulators when balance is toggled off
-  useEffect(() => {
-    if (!autoBalance || !freeStand) resetBalanceIntegral();
-  }, [autoBalance, freeStand]);
   const [initErr, setInitErr] = useState<Error | null>(null);
   const { invalidate } = useThree();
   const onReadyRef = useRef(onReady);
@@ -510,7 +500,7 @@ function MuJoCoG1Scene({
             const v = jr[key];
             qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
           }
-          applyAutoBalance(data, model);
+          applyAutoBalance(data);
         }
 
         (mujoco as { mj_step: (m: unknown, d: unknown) => void }).mj_step(model, data);
