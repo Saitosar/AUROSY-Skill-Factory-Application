@@ -1326,7 +1326,7 @@ table.data td.num {
   position: absolute;
   right: 12px;
   top: 12px;
-  bottom: 12px;
+  max-height: calc(100% - 24px);
   z-index: 5;
   width: min(400px, calc(100% - 100px));
   display: flex;
