@@ -1188,74 +1188,28 @@ table.data td.num {
 .pose-studio-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   min-width: 0;
   max-width: 380px;
   min-height: 0;
   height: 100%;
-  overflow: hidden;
-}
-
-.pose-studio-sidebar .pose-studio-toolbar {
-  flex-shrink: 0;
-  width: 100%;
-  margin-bottom: 0;
-}
-
-.pose-studio-page .joint-slider-row {
-  grid-template-columns: minmax(96px, 1fr) minmax(100px, 2fr) auto;
-}
-
-.pose-studio-page .pose-studio-sidebar > .panel {
-  margin-bottom: 0;
-}
-
-.pose-studio-sidebar-status {
-  flex-shrink: 0;
-  padding: 12px;
-}
-
-.pose-studio-layout > .pose-studio-visual,
-.pose-studio-layout > .pose-studio-sidebar {
-  min-height: 0;
-}
-
-.pose-studio-page .pose-studio-sidebar .pose-studio-panel {
-  flex: 1 1 auto;
-  min-height: 0;
-  /* Cap height: grid/flex %, viewport, or px — ensures scroll when joint list is long */
-  max-height: min(100%, 72vh, 720px);
-  max-height: min(100%, 72dvh, 720px);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
 }
 
-.pose-studio-panel-heading {
-  margin: 0 0 12px;
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.pose-studio-ws {
-  margin-bottom: 16px;
-}
-
-.pose-studio-page .pose-studio-sidebar .pose-studio-ws {
+.pose-studio-sidebar > .panel {
   margin-bottom: 0;
+  flex-shrink: 0;
 }
 
-.pose-studio-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  margin-bottom: 16px;
+.pose-studio-sidebar > .ps-joints-panel {
+  flex-shrink: 1;
 }
 
-.pose-studio-toolbar .tabs {
-  margin-bottom: 0;
+.pose-studio-layout > .pose-studio-visual,
+.pose-studio-layout > .pose-studio-sidebar {
+  min-height: 0;
 }
 
 .pose-studio-page .pose-studio-visual .robot-diagram {
@@ -1284,38 +1238,389 @@ table.data td.num {
   position: relative;
 }
 
-.pose-studio-physics-toggle {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
-  color: #e2e8f0;
-  background: rgba(15, 23, 42, 0.75);
-  border-radius: 0.375rem;
-  cursor: pointer;
-  user-select: none;
-  backdrop-filter: blur(4px);
-}
-
-.pose-studio-freestand-toggle {
-  top: 2rem;
-  background: rgba(127, 29, 29, 0.75);
-}
-
-.pose-studio-balance-toggle {
-  top: 3.5rem;
-  background: rgba(22, 101, 52, 0.82);
-}
-
 /* 3D MuJoCo: R3F Canvas + absolutely positioned canvas fill the grid cell. */
 .pose-studio-visual--wasm {
   min-height: 0;
   flex: 1;
+}
+
+/* ═══ Pose Studio — New Section-Based Sidebar ═══ */
+
+/* Playing indicator on 3D viewer */
+.pose-studio-playing-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.85), rgba(118, 75, 162, 0.85));
+  border-radius: 2rem;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  animation: ps-pulse 2s ease-in-out infinite;
+}
+
+.pose-studio-playing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: ps-dot-blink 1s ease-in-out infinite;
+}
+
+@keyframes ps-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
+}
+
+@keyframes ps-dot-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Section card ── */
+.ps-section {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ps-section-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ps-section-title svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.ps-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Badge (pose counter) ── */
+.ps-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  color: var(--color-primary);
+  margin-left: 6px;
+}
+
+/* ── Toggle switches ── */
+.ps-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.ps-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  user-select: none;
+}
+
+.ps-toggle--compact {
+  font-size: 0.78rem;
+}
+
+.ps-toggle--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.ps-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ps-toggle-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(148, 163, 184, 0.25);
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.ps-toggle input:checked + .ps-toggle-track {
+  background: var(--color-primary);
+}
+
+.ps-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.ps-toggle input:checked + .ps-toggle-track .ps-toggle-thumb {
+  transform: translateX(14px);
+}
+
+/* ── Buttons ── */
+.ps-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.ps-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ps-btn svg {
+  flex-shrink: 0;
+}
+
+.ps-btn--sm {
+  padding: 5px 8px;
+  font-size: 0.75rem;
+}
+
+.ps-btn--full {
+  width: 100%;
+}
+
+.ps-btn--primary {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-color: var(--color-primary);
+}
+
+.ps-btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 85%, #fff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.ps-btn--outline {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.ps-btn--outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border-color: var(--color-primary);
+}
+
+.ps-btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 5px 8px;
+}
+
+.ps-btn--ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.ps-btn--destructive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ps-btn--destructive:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* ── Dance buttons ── */
+.ps-btn--dance {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  width: 100%;
+}
+
+.ps-btn--dance:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
+  filter: brightness(1.08);
+}
+
+.ps-btn--dance-active {
+  animation: ps-dance-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes ps-dance-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(102, 126, 234, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(118, 75, 162, 0.6); }
+}
+
+/* ── Button rows ── */
+.ps-btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ps-btn-row .ps-btn {
+  flex: 1;
+}
+
+.ps-btn-row .ps-btn--ghost {
+  flex: 0 0 auto;
+}
+
+.ps-dance-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Draft inline input ── */
+.ps-draft-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ps-draft-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  background: var(--bg-code);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ps-draft-input:focus {
+  border-color: var(--color-primary);
+}
+
+.ps-draft-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-size: 0.72rem;
+}
+
+/* ── Joint controls header ── */
+.ps-joint-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Collapsible joint groups ── */
+.ps-joint-group {
+  border-top: 1px solid var(--border-default);
+}
+
+.ps-joint-group:first-of-type {
+  border-top: none;
+}
+
+.ps-joint-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 2px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.ps-joint-group-header:hover {
+  color: var(--color-primary);
+}
+
+.ps-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.ps-chevron--open {
+  transform: rotate(90deg);
+}
+
+.ps-joint-count {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.12);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.ps-joint-group-body {
+  padding: 0 0 8px 4px;
+}
+
+/* ── Joints panel scrollable ── */
+.ps-joints-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(100%, 72vh, 720px);
+  max-height: min(100%, 72dvh, 720px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+/* ── Error panel ── */
+.ps-error-panel {
+  flex-shrink: 0;
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* Half the grid row height — full stretch was too tall on large viewports */
