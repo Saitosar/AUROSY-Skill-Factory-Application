@@ -155,10 +155,10 @@ const FALL_HEIGHT = 0.4;
  * Stable range: kp ≤ 2.0, maxCorr ≤ 0.2. Beyond that → oscillation → fall.
  */
 const BAL = {
-  kp: 1.5,
-  kd: 0.3,
+  kp: 2.0,
+  kd: 0.5,
   hipRatio: 1.0,
-  maxCorr: 0.08,
+  maxCorr: 0.15,
   kneeMin: 0.15,
 };
 
@@ -207,6 +207,11 @@ function applyAutoBalance(data: MuJoCoData): void {
   // EMPIRICALLY VERIFIED: both ankle and hip corrections = +corr
   const ankleAdj = cl(corr);
   const hipAdj   = cl(corr * BAL.hipRatio);
+
+  // Debug: log every ~60 frames (1/sec)
+  if (Math.random() < 0.017) {
+    console.log(`[BAL] z=${pz.toFixed(3)} pitch=${(pitch*180/Math.PI).toFixed(1)}° corr=${corr.toFixed(4)} ankle=${ankleAdj.toFixed(4)} hip=${hipAdj.toFixed(4)}`);
+  }
 
   // Read user targets and add corrections
   const lap = qposVecGet(ctrl, L_ANKLE_PITCH) ?? 0;
