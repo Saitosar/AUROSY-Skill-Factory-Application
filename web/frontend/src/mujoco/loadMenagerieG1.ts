@@ -39,8 +39,10 @@ export async function loadMenagerieG1(): Promise<MenagerieG1Handles> {
   const mujoco = await getMujocoModule();
   const vfs = new mujoco.MjVFS();
 
-  for (const rel of MENAGERIE_G1_VFS_PATHS) {
-    const url = `${menagerieBaseUrl()}/${rel}`;
+  // Fetch all assets + scene.xml in parallel
+  const base = menagerieBaseUrl();
+  const assetPromises = MENAGERIE_G1_VFS_PATHS.map(async (rel) => {
+    const url = `${base}/${rel}`;
     const res = await fetch(url);
     if (!res.ok) {
       throw new Error(
@@ -52,15 +54,26 @@ export async function loadMenagerieG1(): Promise<MenagerieG1Handles> {
       const text = new TextDecoder().decode(buf);
       buf = new TextEncoder().encode(patchMujocoXmlForBrowserCompile(text));
     }
+    return { rel, buf };
+  });
+
+  const scenePromise = fetch(`${base}/scene.xml`).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(`scene.xml missing. Run: npm run fetch:menagerie-g1`);
+    }
+    return res.text();
+  });
+
+  const [assets, sceneRaw] = await Promise.all([
+    Promise.all(assetPromises),
+    scenePromise,
+  ]);
+
+  for (const { rel, buf } of assets) {
     vfs.addBuffer(rel, buf);
   }
 
-  const sceneRes = await fetch(`${menagerieBaseUrl()}/scene.xml`);
-  if (!sceneRes.ok) {
-    throw new Error(`scene.xml missing. Run: npm run fetch:menagerie-g1`);
-  }
-  let sceneXml = await sceneRes.text();
-  sceneXml = patchMujocoXmlForBrowserCompile(sceneXml);
+  const sceneXml = patchMujocoXmlForBrowserCompile(sceneRaw);
 
   const model = mujoco.MjModel.from_xml_string(sceneXml, vfs);
   const data = new mujoco.MjData(model);
