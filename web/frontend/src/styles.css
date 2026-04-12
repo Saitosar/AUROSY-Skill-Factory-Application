@@ -59,9 +59,6 @@ select:focus:not(:focus-visible) {
 
 a:focus-visible,
 button:focus-visible,
-.sidebar-collapse-btn:focus-visible,
-.sidebar-floating-open:focus-visible,
-.lang-switch-btn:focus-visible,
 .tabs button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
@@ -79,6 +76,7 @@ select:focus-visible,
 
 .layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
@@ -87,143 +85,112 @@ select:focus-visible,
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 100vh;
+  min-height: 0;
 }
 
-.sidebar {
-  width: 212px;
-  flex-shrink: 0;
-  padding: calc(var(--space-step) * 3);
-  background: color-mix(in srgb, var(--bg-surface) 55%, var(--bg-elevated));
-  border-right: 1px solid var(--border-strong);
-  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.2);
-  transition:
-    width 0.2s ease,
-    padding 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.layout--sidebar-collapsed .sidebar {
-  width: 0;
-  min-width: 0;
-  padding: 0;
-  border-right-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.sidebar-header {
+/* ═══ Top Navigation Bar ═══ */
+.topbar {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.sidebar-collapse-btn {
+  align-items: center;
+  gap: 0;
+  height: 48px;
+  padding: 0 16px;
+  background: color-mix(in srgb, var(--bg-surface) 70%, var(--bg-elevated));
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
-  margin: 0;
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.2;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-default);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.sidebar-collapse-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-}
-
-.sidebar-floating-open {
-  position: fixed;
-  left: 0;
-  top: 12px;
-  z-index: 100;
-  margin: 0;
-  padding: 8px 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 0 var(--radius-control) var(--radius-control) 0;
-  border: 1px solid var(--border-strong);
-  border-left: none;
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  cursor: pointer;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.25);
-}
-
-.sidebar-floating-open:hover {
-  filter: brightness(1.08);
+  z-index: 50;
 }
 
 @supports (backdrop-filter: blur(12px)) {
-  .sidebar {
+  .topbar {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
 }
 
-.sidebar h1 {
-  font-size: 0.875rem;
-  line-height: 1.25;
-  margin: 0;
-  font-weight: 600;
+.topbar-logo {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-right: 24px;
+  flex-shrink: 0;
 }
 
-.lang-switch {
+.topbar-logo:hover {
+  opacity: 0.85;
+}
+
+.topbar-nav {
   display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.lang-switch-btn {
+  align-items: center;
+  gap: 2px;
   flex: 1;
-  padding: 6px 8px;
-  font-size: 0.75rem;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.topbar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.topbar-nav a {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 0.8rem;
   font-weight: 600;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-default);
-  background: transparent;
+  white-space: nowrap;
+  border-radius: 8px;
   color: var(--text-muted);
-  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
 }
 
-.lang-switch-btn:hover {
+.topbar-nav a:hover {
+  background: rgba(148, 163, 184, 0.12);
   color: var(--text-primary);
-  border-color: var(--text-muted);
 }
 
-.lang-switch-btn.active {
-  background: rgba(0, 212, 255, 0.15);
-  border-color: var(--color-primary);
+.topbar-nav a.active {
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
   color: var(--color-primary);
 }
 
-.sidebar nav a {
-  display: block;
-  padding: 5px 8px;
-  font-size: 0.8125rem;
-  line-height: 1.35;
-  border-radius: var(--radius-control);
-  color: var(--text-muted);
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  flex-shrink: 0;
 }
 
-.sidebar nav a.active {
-  background: rgba(148, 163, 184, 0.15);
+.topbar-icon-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.topbar-icon-link:hover {
+  background: rgba(148, 163, 184, 0.12);
   color: var(--text-primary);
 }
 
-.sidebar-nav-divider {
-  height: 1px;
-  margin: 10px 0;
-  background: var(--border-default);
-  border: 0;
+.topbar-icon-link.active {
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  color: var(--color-primary);
+}
+
+.topbar-icon-link svg {
+  flex-shrink: 0;
 }
 
 /* Home dashboard (F8) */
@@ -558,15 +525,15 @@ select:focus-visible,
   padding: 20px 24px;
   max-width: 1100px;
   width: 100%;
+  min-height: 0;
 }
 
 .layout-content main:has(.pose-studio-page) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-width: min(1600px, 100%);
-  padding-top: 12px;
-  padding-bottom: 16px;
+  max-width: 100%;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -577,15 +544,6 @@ select:focus-visible,
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.pose-studio-page .page-header {
-  flex-shrink: 0;
-}
-
-.pose-studio-page .page-header-desc {
-  max-width: none;
-  width: 100%;
 }
 
 h2 {
@@ -899,20 +857,7 @@ button.validation-error-copy-path {
   outline-offset: 2px;
 }
 
-.sidebar-nav-group-label {
-  margin: 10px 12px 4px;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.sidebar .sidebar-nav-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+/* Old sidebar-nav-group removed — now using topbar */
 
 .pipeline-flow {
   display: flex;

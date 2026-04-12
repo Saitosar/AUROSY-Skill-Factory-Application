@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { PageHeader } from "../components/ds/PageHeader";
 import JointWasmSliderRow from "../components/JointWasmSliderRow";
 import MuJoCoG1Viewer from "../components/mujoco/MuJoCoG1Viewer";
 import { getJoints, savePoseDraft } from "../api/client";
@@ -288,8 +287,6 @@ export default function PoseStudio() {
 
   return (
     <div className="pose-studio-page">
-      <PageHeader title={t("pose.title")} description={t("pose.lead")} />
-
       <div className="pose-studio-layout">
         {/* ── Full-screen 3D Viewer (background layer) ── */}
         <div className="ps-stage">
