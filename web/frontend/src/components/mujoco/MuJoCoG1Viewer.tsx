@@ -154,6 +154,7 @@ const R_HIP_PITCH   = 6;
 const R_ANKLE_PITCH = 10;
 const L_KNEE        = 3;
 const R_KNEE        = 9;
+const WAIST_ROLL    = 13;
 
 /** If pelvis z drops below this, robot has fallen — stop correcting entirely. */
 const FALL_HEIGHT = 0.4;
@@ -185,9 +186,20 @@ const BAL = {
 // (e.g. hip_roll=-14° on standing leg shifts CoM over the foot).
 // Verified in test_dance_pitch_only.py: 3 loops, 42 transitions, 0 falls.
 
+// NOTE: Roll PD through waist_roll — corrects lateral lean without the positive
+// feedback that hip_roll PD creates. Keeps max correction small (≈1.7°).
+// Verified in test_final_dance.py: all FPS passed (30/60/90/120/144), 5 loops.
+const ROLL_BAL = {
+  kp: 0.3,
+  kd: 0.1,
+  maxCorr: 0.03,   // ~1.7° — very gentle
+  deadZone: 0.02,  // ~1.1° — don't correct tiny oscillations
+};
+
 const DEAD_ZONE = 0.01;
 const SMOOTH = 0.5;
 let _prevCorr = 0;
+let _prevRollCorr = 0;
 
 function applyAutoBalance(data: MuJoCoData): void {
   const qpos = data.qpos;
@@ -252,6 +264,20 @@ function applyAutoBalance(data: MuJoCoData): void {
   // Knee bend for stability
   qposVecSet(ctrl, L_KNEE, Math.max(lk, BAL.kneeMin));
   qposVecSet(ctrl, R_KNEE, Math.max(rk, BAL.kneeMin));
+
+  // ── Roll PD (waist_roll correction) ──
+  const rollAngle = Math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy));
+  if (Math.abs(rollAngle) > ROLL_BAL.deadZone) {
+    const wx = qposVecGet(qvel, 3) ?? 0;
+    let rollCorr = rollAngle * ROLL_BAL.kp + wx * ROLL_BAL.kd;
+    rollCorr = SMOOTH * _prevRollCorr + (1 - SMOOTH) * rollCorr;
+    _prevRollCorr = rollCorr;
+    const rc = Math.max(-ROLL_BAL.maxCorr, Math.min(ROLL_BAL.maxCorr, rollCorr));
+    const wr = qposVecGet(ctrl, WAIST_ROLL) ?? 0;
+    qposVecSet(ctrl, WAIST_ROLL, wr - rc);
+  } else {
+    _prevRollCorr *= 0.9;
+  }
 }
 
 // ── RL Balance Policy (ONNX) ──────────────────────────────────────────────────
