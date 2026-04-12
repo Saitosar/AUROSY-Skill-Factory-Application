@@ -390,56 +390,50 @@ export default function PoseStudio() {
 
         {/* ── Right: Control Panel (overlay) ── */}
         <div className="ps-control-panel">
-          {/* Keyframes card */}
-          <div className="ps-card">
-            <div className="ps-card-header">
-              <h3 className="ps-card-title">
-                Keyframes
-                {savedWasmPoses.length > 0 && (
-                  <span className="ps-badge">{savedWasmPoses.length}/{MAX_SAVED_WASM_POSES}</span>
-                )}
-              </h3>
-              <button
-                type="button"
-                className="ps-btn ps-btn--ghost ps-btn--icon"
-                disabled={savedWasmPoses.length === 0 || wasmMotionPlaying}
-                onClick={clearWasmSavedPoses}
-                title={t("pose.clearSavedPoses")}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-              </button>
-            </div>
-            <div className="ps-card-body">
-              <button
-                type="button"
-                className="ps-btn ps-btn--outline ps-btn--full"
-                disabled={!keyframesListForExport?.length || wasmMotionPlaying}
-                onClick={downloadSdkPoseJson}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                {t("pose.downloadSdkPoseJson")}
-              </button>
-              <div className="ps-draft-row">
-                <input
-                  type="text"
-                  className="ps-draft-input"
-                  placeholder={t("pose.saveDraftPrompt")}
-                  value={draftName}
-                  onChange={(e) => setDraftName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
-                  disabled={wasmMotionPlaying}
-                />
-                <button
-                  type="button"
-                  className="ps-btn ps-btn--primary ps-btn--sm"
-                  disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying}
-                  onClick={() => void saveWasmDraft()}
-                  title={t("pose.saveDraft")}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-                </button>
-              </div>
-            </div>
+          {/* Keyframes compact toolbar */}
+          <div className="ps-kf-bar">
+            <span className="ps-kf-label">
+              KF
+              {savedWasmPoses.length > 0 && (
+                <span className="ps-badge">{savedWasmPoses.length}/{MAX_SAVED_WASM_POSES}</span>
+              )}
+            </span>
+            <input
+              type="text"
+              className="ps-kf-input"
+              placeholder={t("pose.saveDraftPrompt")}
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
+              disabled={wasmMotionPlaying}
+            />
+            <button
+              type="button"
+              className="ps-kf-icon-btn"
+              disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying}
+              onClick={() => void saveWasmDraft()}
+              title={t("pose.saveDraft")}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            </button>
+            <button
+              type="button"
+              className="ps-kf-icon-btn"
+              disabled={!keyframesListForExport?.length || wasmMotionPlaying}
+              onClick={downloadSdkPoseJson}
+              title={t("pose.downloadSdkPoseJson")}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            </button>
+            <button
+              type="button"
+              className="ps-kf-icon-btn ps-kf-icon-btn--danger"
+              disabled={savedWasmPoses.length === 0 || wasmMotionPlaying}
+              onClick={clearWasmSavedPoses}
+              title={t("pose.clearSavedPoses")}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
           </div>
 
           {/* Joints card */}

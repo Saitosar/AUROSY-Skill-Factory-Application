@@ -1832,18 +1832,37 @@ table.data td.num {
   gap: 6px;
 }
 
-/* ── Draft inline input ── */
-.ps-draft-row {
+/* ── Keyframes compact toolbar ── */
+.ps-kf-bar {
   display: flex;
-  gap: 6px;
   align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
 }
 
-.ps-draft-input {
+.ps-kf-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.ps-kf-input {
   flex: 1;
   min-width: 0;
-  padding: 5px 10px;
-  font-size: 0.78rem;
+  padding: 4px 8px;
+  font-size: 0.74rem;
   background: var(--bg-code);
   color: var(--text-primary);
   border: 1px solid var(--border-default);
@@ -1852,14 +1871,45 @@ table.data td.num {
   transition: border-color 0.15s;
 }
 
-.ps-draft-input:focus {
+.ps-kf-input:focus {
   border-color: var(--color-primary);
 }
 
-.ps-draft-input::placeholder {
+.ps-kf-input::placeholder {
   color: var(--text-muted);
   opacity: 0.6;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+}
+
+.ps-kf-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ps-kf-icon-btn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-primary);
+}
+
+.ps-kf-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ps-kf-icon-btn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 12%, transparent);
+  color: var(--color-danger, #ef4444);
 }
 
 /* ── Joint controls header ── */
