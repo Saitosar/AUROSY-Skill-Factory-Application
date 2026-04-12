@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../../mujoco/jointMapping";
 import { loadMenagerieG1 } from "../../mujoco/loadMenagerieG1";
-import { qposVecSet, skillKeyQposAddress } from "../../mujoco/qposToSkillAngles";
+import { qposVecGet, qposVecSet, skillKeyQposAddress } from "../../mujoco/qposToSkillAngles";
 
 export type MuJoCoG1ViewerProps = {
   jointRad: Record<string, number>;
@@ -19,6 +19,7 @@ type MuJoCoModel = {
   nbody: number;
   nmesh: number;
   nu: number;
+  nv: number;
   geom_type: Int32Array;
   geom_bodyid: Int32Array;
   geom_dataid: Int32Array;
@@ -309,22 +310,44 @@ function MuJoCoG1Scene({
         const v = jr[key];
         qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
       }
+
+      const qpos = data.qpos;
+      const qvel = data.qvel;
+      const nv = model.nv as number; // total DOFs in velocity space
+
       for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
+        // Pin floating base BEFORE step so forces are computed from stable state.
+        qposVecSet(qpos, 0, 0);    // x
+        qposVecSet(qpos, 1, 0);    // y
+        qposVecSet(qpos, 2, 0.75); // z — standing height (matches body pos in g1.xml)
+        qposVecSet(qpos, 3, 1);    // qw
+        qposVecSet(qpos, 4, 0);    // qx
+        qposVecSet(qpos, 5, 0);    // qy
+        qposVecSet(qpos, 6, 0);    // qz
+        for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0); // zero base velocity
+
         (mujoco as { mj_step: (m: unknown, d: unknown) => void }).mj_step(model, data);
-        // Pin the floating base (freejoint) so the robot cannot fall.
-        // qpos[0..2] = position (x,y,z), qpos[3..6] = quaternion (w,x,y,z)
-        // qvel[0..5] = linear + angular velocity of the base
-        const qpos = data.qpos;
-        const qvel = data.qvel;
-        qposVecSet(qpos, 0, 0);   // x
-        qposVecSet(qpos, 1, 0);   // y
-        qposVecSet(qpos, 2, 0.75); // z — standing height
-        qposVecSet(qpos, 3, 1);   // qw
-        qposVecSet(qpos, 4, 0);   // qx
-        qposVecSet(qpos, 5, 0);   // qy
-        qposVecSet(qpos, 6, 0);   // qz
+
+        // Pin base again AFTER step (undo any drift from reaction forces).
+        qposVecSet(qpos, 0, 0);
+        qposVecSet(qpos, 1, 0);
+        qposVecSet(qpos, 2, 0.75);
+        qposVecSet(qpos, 3, 1);
+        qposVecSet(qpos, 4, 0);
+        qposVecSet(qpos, 5, 0);
+        qposVecSet(qpos, 6, 0);
         for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0);
+
+        // Damp hinge joint velocities to prevent oscillation/energy buildup.
+        // Indices 6..nv-1 are the hinge joint velocities (after 6 base DOFs).
+        for (let v = 6; v < nv; v++) {
+          const cur = qposVecGet(qvel, v);
+          if (typeof cur === "number") qposVecSet(qvel, v, cur * 0.85);
+        }
       }
+
+      // Recompute xpos/xquat from the pinned qpos so Three.js renders correctly.
+      (mujoco as { mj_forward: (m: unknown, d: unknown) => void }).mj_forward(model, data);
     } else {
       // Kinematic mode (original): write directly to qpos, then mj_forward.
       const qpos = data.qpos;
