@@ -167,24 +167,24 @@ const FALL_HEIGHT = 0.4;
  * No hip_roll corrections (bilateral asymmetry makes sign errors too risky).
  */
 const BAL = {
-  // Pitch
-  kpAnklePitch: 3.0,
-  kpHipPitch: 1.8,
-  kpWaistPitch: 0.8,
-  kdPitch: 0.4,
+  // Pitch (ankle frcrange ±50 Nm, kp=500 → saturation at 0.1 rad!)
+  kpAnklePitch: 1.0,
+  kpHipPitch: 0.6,
+  kpWaistPitch: 0.3,
+  kdPitch: 0.3,
   // Roll
-  kpAnkleRoll: 2.5,
-  kpWaistRoll: 0.7,
-  kdRoll: 0.3,
-  // Limits
-  maxCorr: 0.3,
-  kneeMin: 0.15,
+  kpAnkleRoll: 0.8,
+  kpWaistRoll: 0.3,
+  kdRoll: 0.2,
+  // Limits — must stay below actuator saturation (50Nm / kp500 = 0.1 rad)
+  maxCorr: 0.08,
+  kneeMin: 0.2,
 };
 
-/** Very small dead zone — only suppress sensor noise, not real tilts. */
-const DEAD_ZONE = 0.005;
-/** Smoothing (lower = more responsive). */
-const SMOOTH = 0.3;
+/** Dead zone to prevent micro-oscillation. */
+const DEAD_ZONE = 0.01;
+/** Smoothing — higher = slower but more stable (0.6 = 60% old + 40% new). */
+const SMOOTH = 0.6;
 
 let _prevPitchCorr = 0;
 let _prevRollCorr = 0;
