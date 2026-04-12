@@ -39,6 +39,7 @@ type MuJoCoData = {
   xpos: Float64Array;
   xquat: Float64Array;
   qpos: unknown;
+  qvel: unknown;
   ctrl: unknown;
 };
 
@@ -310,6 +311,19 @@ function MuJoCoG1Scene({
       }
       for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
         (mujoco as { mj_step: (m: unknown, d: unknown) => void }).mj_step(model, data);
+        // Pin the floating base (freejoint) so the robot cannot fall.
+        // qpos[0..2] = position (x,y,z), qpos[3..6] = quaternion (w,x,y,z)
+        // qvel[0..5] = linear + angular velocity of the base
+        const qpos = data.qpos;
+        const qvel = data.qvel;
+        qposVecSet(qpos, 0, 0);   // x
+        qposVecSet(qpos, 1, 0);   // y
+        qposVecSet(qpos, 2, 0.75); // z — standing height
+        qposVecSet(qpos, 3, 1);   // qw
+        qposVecSet(qpos, 4, 0);   // qx
+        qposVecSet(qpos, 5, 0);   // qy
+        qposVecSet(qpos, 6, 0);   // qz
+        for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0);
       }
     } else {
       // Kinematic mode (original): write directly to qpos, then mj_forward.
