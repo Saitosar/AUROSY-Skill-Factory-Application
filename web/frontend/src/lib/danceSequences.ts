@@ -45,18 +45,19 @@ const d = (deg: number) => (deg * Math.PI) / 180;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LEZGINKA DANCE
-// Empirically verified in native MuJoCo with full gravity (test_dance_pitch_only.py).
-// 3 full loops, 42 transitions, 0 falls.
+// 24 keyframes per loop, 3 loops = 72 transitions.
+// Verified at 30/60/90/120/144 fps — all passed, max roll 5.0°.
 //
-// ONE-LEG STABILITY RECIPE (from exhaustive sweep test_oneleg_sweep.py):
-//   LIFT RIGHT: standing_hip_roll(L)=-14°, waist_roll=-3°, hip_pitch=-10°, knee=30°
-//   LIFT LEFT:  standing_hip_roll(R)=+14°, waist_roll=+3°, hip_pitch=-10°, knee=30°
+// STABILITY RECIPES:
+//   FORWARD LIFT: standing_hip_roll=±14°, waist_roll=±3°, hip_pitch=-10°, knee=30°
+//   BACK TOE TAP: grounded, hip_pitch=+15°, knee=10°, weight on front leg
+//     (R→L needs 0.8s settle between sides to dissipate angular momentum)
 //
 // Key design rules:
 //   1. hip_roll=-14°/+14° on standing leg shifts CoM over the foot
 //   2. Leg lifts limited to hip_pitch=-10°, knee=30° (proven stable)
-//   3. Direct two-leg→one-leg transitions (cosine easing handles gradual shift)
-//   4. Both-feet recovery after each lift to reset balance
+//   3. Back toe taps: both feet on ground, hp=15° max (>18° creates R→L instability)
+//   4. 1.0s neutral reset after back taps before knee lifts
 //   5. Dramatic ARM movements carry the Lezginka visual identity
 //   6. NO roll PD controller — it creates positive feedback with hip_roll
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -182,8 +183,65 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ══════════ SECTION 4: PROUD LIFTS ══════════
-    // ── 9. Right knee high ──
+    // ══════════ SECTION 4: BACK TOE TAPS (grounded) ══════════
+    // ── 9. Right leg slides back, weight on left ──
+    {
+      duration: 0.7,
+      label: "Back tap right",
+      pose: pose({
+        left_knee: d(15),
+        right_hip_pitch: d(15), right_knee: d(10),
+        waist_roll: d(-3),
+        left_shoulder_pitch: d(-65), left_shoulder_roll: d(75),
+        left_shoulder_yaw: d(10),
+        right_shoulder_pitch: d(-20), right_shoulder_roll: d(-35),
+        left_elbow: d(50), right_elbow: d(15),
+        left_wrist_pitch: d(-30), left_wrist_yaw: d(20),
+      }),
+    },
+
+    // ── 10. Settle center ──
+    {
+      duration: 0.8,
+      label: "Settle center",
+      pose: pose({
+        left_knee: d(12), right_knee: d(12),
+        left_shoulder_pitch: d(-35), left_shoulder_roll: d(50),
+        right_shoulder_pitch: d(-35), right_shoulder_roll: d(-50),
+        left_elbow: d(35), right_elbow: d(35),
+      }),
+    },
+
+    // ── 11. Left leg slides back, weight on right ──
+    {
+      duration: 0.7,
+      label: "Back tap left",
+      pose: pose({
+        right_knee: d(15),
+        left_hip_pitch: d(15), left_knee: d(10),
+        waist_roll: d(3),
+        right_shoulder_pitch: d(-65), right_shoulder_roll: d(-75),
+        right_shoulder_yaw: d(-10),
+        left_shoulder_pitch: d(-20), left_shoulder_roll: d(35),
+        right_elbow: d(50), left_elbow: d(15),
+        right_wrist_pitch: d(-30), right_wrist_yaw: d(-20),
+      }),
+    },
+
+    // ── 12. Neutral reset (1.0s to fully dissipate back-tap dynamics) ──
+    {
+      duration: 1.0,
+      label: "Neutral reset",
+      pose: pose({
+        left_knee: d(14), right_knee: d(14),
+        left_shoulder_pitch: d(10), left_shoulder_roll: d(65),
+        right_shoulder_pitch: d(10), right_shoulder_roll: d(-65),
+        left_elbow: d(15), right_elbow: d(15),
+      }),
+    },
+
+    // ══════════ SECTION 5: PROUD LIFTS ══════════
+    // ── 13. Right knee high ──
     {
       duration: 0.8,
       label: "Right knee high",
@@ -199,7 +257,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 10. Settle ──
+    // ── 14. Settle ──
     {
       duration: 0.5,
       label: "Settle",
@@ -211,7 +269,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 11. Left knee high ──
+    // ── 15. Left knee high ──
     {
       duration: 0.8,
       label: "Left knee high",
@@ -227,7 +285,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 12. Settle ──
+    // ── 16. Settle ──
     {
       duration: 0.5,
       label: "Settle 2",
@@ -239,8 +297,8 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ══════════ SECTION 5: SWAY ══════════
-    // ── 13. Sway right ──
+    // ══════════ SECTION 6: SWAY ══════════
+    // ── 17. Sway right ──
     {
       duration: 0.5,
       label: "Sway right",
@@ -254,7 +312,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 14. Sway left ──
+    // ── 18. Sway left ──
     {
       duration: 0.5,
       label: "Sway left",
@@ -268,7 +326,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 15. Center snap ──
+    // ── 19. Center snap ──
     {
       duration: 0.4,
       label: "Center snap",
@@ -281,8 +339,8 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ══════════ SECTION 6: LIFT + TURN ══════════
-    // ── 16. Right lift + turn ──
+    // ══════════ SECTION 7: LIFT + TURN ══════════
+    // ── 20. Right lift + turn ──
     {
       duration: 0.8,
       label: "Right lift turn",
@@ -298,7 +356,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 17. Recovery ──
+    // ── 21. Recovery ──
     {
       duration: 0.5,
       label: "Recovery",
@@ -311,7 +369,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 18. Left lift + turn ──
+    // ── 22. Left lift + turn ──
     {
       duration: 0.8,
       label: "Left lift turn",
@@ -327,8 +385,8 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ══════════ SECTION 7: GRAND FINALE ══════════
-    // ── 19. Grand finale ──
+    // ══════════ SECTION 8: GRAND FINALE ══════════
+    // ── 23. Grand finale ──
     {
       duration: 0.6,
       label: "Grand finale",
@@ -343,7 +401,7 @@ export const LEZGINKA: DanceSequence = {
       }),
     },
 
-    // ── 20. Return ──
+    // ── 24. Return ──
     {
       duration: 0.8,
       label: "Return",
