@@ -52,7 +52,7 @@ export default function PoseStudio() {
   const wasmMotionPlayingRef = useRef(false);
   const wasmMotionCancelRef = useRef(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
-  const [freeStand, setFreeStand] = useState(false);
+  const [freeStand, setFreeStand] = useState(true);
   const [autoBalance, setAutoBalance] = useState(true);
   const [dancePlaying, setDancePlaying] = useState(false);
   const danceCancelRef = useRef(false);
@@ -317,33 +317,21 @@ export default function PoseStudio() {
         {/* ── Left: Mini Control Bar (overlay) ── */}
         <nav className="ps-minibar" aria-label="Quick controls">
           <div className="ps-minibar-group">
-            <button
-              type="button"
-              className={`ps-minibar-btn${physicsEnabled ? " ps-minibar-btn--active" : ""}`}
-              onClick={() => setPhysicsEnabled(!physicsEnabled)}
-              title="Physics"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              <span>Physics</span>
-            </button>
-            <button
-              type="button"
-              className={`ps-minibar-btn${freeStand ? " ps-minibar-btn--active" : ""}${!physicsEnabled ? " ps-minibar-btn--disabled" : ""}`}
-              onClick={() => physicsEnabled && setFreeStand(!freeStand)}
-              title="Free Stand"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a2 2 0 100 4 2 2 0 000-4zM10 22V12M14 22V12M7 8h10"/></svg>
-              <span>Free</span>
-            </button>
-            <button
-              type="button"
-              className={`ps-minibar-btn${autoBalance ? " ps-minibar-btn--active" : ""}${(!physicsEnabled || !freeStand) ? " ps-minibar-btn--disabled" : ""}`}
-              onClick={() => physicsEnabled && freeStand && setAutoBalance(!autoBalance)}
-              title="Auto Balance"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v18M3 12h18M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>
-              <span>Balance</span>
-            </button>
+            <label className="ps-minibar-toggle" title="Physics">
+              <input type="checkbox" checked={physicsEnabled} onChange={(e) => setPhysicsEnabled(e.target.checked)} />
+              <span className="ps-minibar-toggle-track"><span className="ps-minibar-toggle-thumb" /></span>
+              <span className="ps-minibar-toggle-label">Physics</span>
+            </label>
+            <label className={`ps-minibar-toggle${!physicsEnabled ? " ps-minibar-toggle--disabled" : ""}`} title="Free Stand">
+              <input type="checkbox" checked={freeStand} disabled={!physicsEnabled} onChange={(e) => setFreeStand(e.target.checked)} />
+              <span className="ps-minibar-toggle-track"><span className="ps-minibar-toggle-thumb" /></span>
+              <span className="ps-minibar-toggle-label">Free</span>
+            </label>
+            <label className={`ps-minibar-toggle${(!physicsEnabled || !freeStand) ? " ps-minibar-toggle--disabled" : ""}`} title="Auto Balance">
+              <input type="checkbox" checked={autoBalance} disabled={!physicsEnabled || !freeStand} onChange={(e) => setAutoBalance(e.target.checked)} />
+              <span className="ps-minibar-toggle-track"><span className="ps-minibar-toggle-thumb" /></span>
+              <span className="ps-minibar-toggle-label">Balance</span>
+            </label>
           </div>
 
           <div className="ps-minibar-divider" />
