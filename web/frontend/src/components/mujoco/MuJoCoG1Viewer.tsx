@@ -305,33 +305,41 @@ function MuJoCoG1Scene({
       // hold the robot upright against gravity via mj_step.
       // Actuator order in g1.xml matches SKILL_KEYS_IN_JOINT_MAP_ORDER exactly.
       const ctrl = data.ctrl;
+      const qpos = data.qpos;
+      const qvel = data.qvel;
+      const nv = model.nv as number;
+
       for (let i = 0; i < SKILL_KEYS_IN_JOINT_MAP_ORDER.length && i < model.nu; i++) {
         const key = SKILL_KEYS_IN_JOINT_MAP_ORDER[i];
         const v = jr[key];
-        qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
-      }
+        const target = typeof v === "number" && Number.isFinite(v) ? v : 0;
+        qposVecSet(ctrl, i, target);
 
-      const qpos = data.qpos;
-      const qvel = data.qvel;
-      const nv = model.nv as number; // total DOFs in velocity space
+        // Also sync joint qpos to target so the actuator starts from the
+        // desired angle — prevents fighting between current pose and target
+        // which causes leaning/jerking.
+        const adr = skillKeyQposAddress(model as never, key);
+        if (adr >= 0) qposVecSet(qpos, adr, target);
+      }
 
       for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
         // Pin floating base BEFORE step so forces are computed from stable state.
-        qposVecSet(qpos, 0, 0);    // x
-        qposVecSet(qpos, 1, 0);    // y
-        qposVecSet(qpos, 2, 0.75); // z — standing height (matches body pos in g1.xml)
-        qposVecSet(qpos, 3, 1);    // qw
-        qposVecSet(qpos, 4, 0);    // qx
-        qposVecSet(qpos, 5, 0);    // qy
-        qposVecSet(qpos, 6, 0);    // qz
-        for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0); // zero base velocity
+        // pelvis pos in g1.xml: "0 0 0.793"
+        qposVecSet(qpos, 0, 0);     // x
+        qposVecSet(qpos, 1, 0);     // y
+        qposVecSet(qpos, 2, 0.793); // z — pelvis standing height from g1.xml
+        qposVecSet(qpos, 3, 1);     // qw
+        qposVecSet(qpos, 4, 0);     // qx
+        qposVecSet(qpos, 5, 0);     // qy
+        qposVecSet(qpos, 6, 0);     // qz
+        for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0);
 
         (mujoco as { mj_step: (m: unknown, d: unknown) => void }).mj_step(model, data);
 
         // Pin base again AFTER step (undo any drift from reaction forces).
         qposVecSet(qpos, 0, 0);
         qposVecSet(qpos, 1, 0);
-        qposVecSet(qpos, 2, 0.75);
+        qposVecSet(qpos, 2, 0.793);
         qposVecSet(qpos, 3, 1);
         qposVecSet(qpos, 4, 0);
         qposVecSet(qpos, 5, 0);
@@ -339,7 +347,6 @@ function MuJoCoG1Scene({
         for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0);
 
         // Damp hinge joint velocities to prevent oscillation/energy buildup.
-        // Indices 6..nv-1 are the hinge joint velocities (after 6 base DOFs).
         for (let v = 6; v < nv; v++) {
           const cur = qposVecGet(qvel, v);
           if (typeof cur === "number") qposVecSet(qvel, v, cur * 0.85);
