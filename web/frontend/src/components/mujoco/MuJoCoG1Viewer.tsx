@@ -300,30 +300,25 @@ function MuJoCoG1Scene({
     const usePhysics = physicsRef.current;
 
     if (usePhysics) {
-      // Physics mode: write target angles to data.ctrl (actuator inputs).
-      // Position actuators (kp=500, dampratio=1) will generate torques to
-      // hold the robot upright against gravity via mj_step.
-      // Actuator order in g1.xml matches SKILL_KEYS_IN_JOINT_MAP_ORDER exactly.
+      // Physics mode: only set ctrl (actuator targets).
+      // mj_step computes real physics — gravity, inertia, contact forces.
+      // The PD actuators (kp=500, dampratio=1) generate torques to REACH
+      // the target angles, but joints respond realistically: arms droop
+      // under weight, impossible poses fail, movements have inertia.
       const ctrl = data.ctrl;
       const qpos = data.qpos;
       const qvel = data.qvel;
-      const nv = model.nv as number;
 
+      // Write target angles to ctrl only — do NOT overwrite qpos.
+      // qpos is determined by physics simulation.
       for (let i = 0; i < SKILL_KEYS_IN_JOINT_MAP_ORDER.length && i < model.nu; i++) {
         const key = SKILL_KEYS_IN_JOINT_MAP_ORDER[i];
         const v = jr[key];
-        const target = typeof v === "number" && Number.isFinite(v) ? v : 0;
-        qposVecSet(ctrl, i, target);
-
-        // Also sync joint qpos to target so the actuator starts from the
-        // desired angle — prevents fighting between current pose and target
-        // which causes leaning/jerking.
-        const adr = skillKeyQposAddress(model as never, key);
-        if (adr >= 0) qposVecSet(qpos, adr, target);
+        qposVecSet(ctrl, i, typeof v === "number" && Number.isFinite(v) ? v : 0);
       }
 
       for (let s = 0; s < PHYSICS_STEPS_PER_FRAME; s++) {
-        // Pin floating base BEFORE step so forces are computed from stable state.
+        // Pin floating base BEFORE step — pelvis stays fixed in space.
         // pelvis pos in g1.xml: "0 0 0.793"
         qposVecSet(qpos, 0, 0);     // x
         qposVecSet(qpos, 1, 0);     // y
@@ -336,7 +331,7 @@ function MuJoCoG1Scene({
 
         (mujoco as { mj_step: (m: unknown, d: unknown) => void }).mj_step(model, data);
 
-        // Pin base again AFTER step (undo any drift from reaction forces).
+        // Pin base AFTER step (undo reaction-force drift).
         qposVecSet(qpos, 0, 0);
         qposVecSet(qpos, 1, 0);
         qposVecSet(qpos, 2, 0.793);
@@ -345,15 +340,9 @@ function MuJoCoG1Scene({
         qposVecSet(qpos, 5, 0);
         qposVecSet(qpos, 6, 0);
         for (let v = 0; v < 6; v++) qposVecSet(qvel, v, 0);
-
-        // Damp hinge joint velocities to prevent oscillation/energy buildup.
-        for (let v = 6; v < nv; v++) {
-          const cur = qposVecGet(qvel, v);
-          if (typeof cur === "number") qposVecSet(qvel, v, cur * 0.85);
-        }
       }
 
-      // Recompute xpos/xquat from the pinned qpos so Three.js renders correctly.
+      // Recompute xpos/xquat from physics-determined qpos for rendering.
       (mujoco as { mj_forward: (m: unknown, d: unknown) => void }).mj_forward(model, data);
     } else {
       // Kinematic mode (original): write directly to qpos, then mj_forward.
