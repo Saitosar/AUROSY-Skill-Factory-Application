@@ -242,7 +242,7 @@ select:focus-visible,
   right: 0;
   min-width: 220px;
   background: var(--bg-surface, #1e1e2e);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(48px);
   border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
