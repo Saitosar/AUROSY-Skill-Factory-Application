@@ -1302,6 +1302,11 @@ table.data td.num {
   backdrop-filter: blur(4px);
 }
 
+.pose-studio-freestand-toggle {
+  top: 2rem;
+  background: rgba(127, 29, 29, 0.75);
+}
+
 /* 3D MuJoCo: R3F Canvas + absolutely positioned canvas fill the grid cell. */
 .pose-studio-visual--wasm {
   min-height: 0;

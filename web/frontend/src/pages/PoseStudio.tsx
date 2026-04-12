@@ -51,6 +51,7 @@ export default function PoseStudio() {
   const wasmMotionPlayingRef = useRef(false);
   const wasmMotionCancelRef = useRef(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(true);
+  const [freeStand, setFreeStand] = useState(false);
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
@@ -246,6 +247,7 @@ export default function PoseStudio() {
               <MuJoCoG1Viewer
                 jointRad={wasmJointRad}
                 physicsEnabled={physicsEnabled}
+                freeStand={freeStand}
                 onReady={onWasmReady}
                 onError={(e) => {
                   setWasmViewerError(e.message);
@@ -259,8 +261,18 @@ export default function PoseStudio() {
                 checked={physicsEnabled}
                 onChange={(e) => setPhysicsEnabled(e.target.checked)}
               />
-              {" Physics (gravity)"}
+              {" Physics"}
             </label>
+            {physicsEnabled && (
+              <label className="pose-studio-physics-toggle pose-studio-freestand-toggle">
+                <input
+                  type="checkbox"
+                  checked={freeStand}
+                  onChange={(e) => setFreeStand(e.target.checked)}
+                />
+                {" Free Stand"}
+              </label>
+            )}
           </div>
         </section>
 
