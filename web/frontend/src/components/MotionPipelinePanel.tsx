@@ -75,6 +75,7 @@ export function MotionPipelinePanel({
     : setInternalLandmarksArtifact;
   const [snapshot, setSnapshot] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [trainMode, setTrainMode] = useState<MotionPipelineTrainMode>("amp");
   const [ampSize, setAmpSize] = useState<AmpTrainSize>("short");
 
@@ -173,9 +174,22 @@ export function MotionPipelinePanel({
 
   return (
     <section className="pose-studio-motion-pipeline panel" aria-labelledby="motion-pipeline-heading">
-      <h2 id="motion-pipeline-heading" className="pose-studio-panel-heading">
-        {t("motionPipeline.title")}
-      </h2>
+      <div className="motion-capture-header">
+        <h2 id="motion-pipeline-heading" className="pose-studio-panel-heading">
+          {t("motionPipeline.title")}
+        </h2>
+        <button
+          type="button"
+          className="motion-capture-collapse-btn"
+          aria-expanded={!collapsed}
+          aria-controls="motion-pipeline-body"
+          onClick={() => setCollapsed((v) => !v)}
+        >
+          {collapsed ? t("motionPipeline.expand") : t("motionPipeline.collapse")}
+        </button>
+      </div>
+      {!collapsed && (
+        <div id="motion-pipeline-body">
       <p className="muted" style={{ fontSize: "0.85rem", marginTop: 0 }}>
         {t("motionPipeline.lead")}
       </p>
@@ -350,6 +364,8 @@ export function MotionPipelinePanel({
           </p>
         ) : null}
       </div>
+        </div>
+      )}
     </section>
   );
 }

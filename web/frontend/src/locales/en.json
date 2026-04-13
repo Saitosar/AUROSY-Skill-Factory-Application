@@ -456,6 +456,8 @@
   },
   "motionPipeline": {
     "title": "Motion skill pipeline",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "lead": "Track capture → reference → train → eval → pack. Load a reference_trajectory.json artifact, or MediaPipe frames JSON (from camera recording), then enqueue train. Default is AMP (imitation); switch to Smoke for a quick contract-only run.",
     "trainModeLabel": "Train job mode",
     "trainModeAmp": "AMP (imitation)",
