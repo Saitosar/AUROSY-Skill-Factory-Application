@@ -68,8 +68,16 @@ Backend поддерживает `POST /api/pipeline/retarget` для преоб
 - `MotionCapturePanel` включает камеру браузера (`getUserMedia`), стримит JPEG кадры в `WS /ws/capture`.
 - Сервис возвращает landmarks (`type: "pose"`), после чего UI вызывает `POST /api/pipeline/retarget`.
 - Полученные `joint_angles_rad` применяются в состоянии `PoseStudio` и обновляют MuJoCo G1 preview в режиме реального времени.
+- Если `WS /ws/capture` недоступен, `MotionCapturePanel` использует локальный fallback: браузерный `PoseLandmarker` + `POST /api/pipeline/retarget`.
 - При `type: "recording_stopped"` UI получает `bvh` и `landmarks_frames`, сохраняет platform artifact формата `aurosy_capture_v1` (`frames` + `bvh`) и автоматически заполняет поле **Landmarks artifact** в Motion pipeline.
 - При активном live track ручное изменение позы и playback-кнопки отключаются, чтобы не конфликтовать с входящим потоком.
+
+### Live Mode UX additions
+
+- В `PoseStudio` есть явный переключатель **Live Mode** (enabled/disabled отдельно от backend-флага `retargeting_enabled`).
+- Перед запуском live-сессии выполняется 3-секундная визуальная калибровка (`T-pose calibration`).
+- В превью камеры рисуется skeleton overlay (12 опорных связей) и диагностические показатели (`FPS`, `Confidence`).
+- При `telemetry_mode=dds` показывается предупреждение, что без DDS-моста поведение может быть ограничено mock-режимом.
 
 ## Phase 6: Motion skill pipeline (Motion Studio)
 

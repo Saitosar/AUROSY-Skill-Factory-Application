@@ -5,6 +5,8 @@ export type PoseData = {
   landmarks: number[][];
   confidence: number;
   timestamp_ms: number;
+  joint_order?: string[];
+  joint_angles_rad?: number[];
 };
 
 export type RecordingResult = {
@@ -39,6 +41,8 @@ export function useMotionCaptureWs() {
   const wsRef = useRef<WebSocket | null>(null);
   const pendingRecordingRef = useRef<PendingRecording | null>(null);
   const disconnectRequestedRef = useRef(false);
+  const frameSendingRef = useRef(false);
+  const pendingFrameRef = useRef<ArrayBuffer | null>(null);
 
   const clearPendingRecording = useCallback((value: RecordingResult | null) => {
     const pending = pendingRecordingRef.current;
@@ -103,6 +107,12 @@ export function useMotionCaptureWs() {
             landmarks: (payload.landmarks as number[][]) ?? [],
             confidence: Number(payload.confidence ?? 0),
             timestamp_ms: Number(payload.timestamp_ms ?? 0),
+            joint_order: Array.isArray(payload.joint_order)
+              ? (payload.joint_order as string[])
+              : undefined,
+            joint_angles_rad: Array.isArray(payload.joint_angles_rad)
+              ? (payload.joint_angles_rad as number[])
+              : undefined,
           });
         } else if (type === "recording_started") {
           setIsRecording(true);
@@ -135,13 +145,38 @@ export function useMotionCaptureWs() {
     setConnectionState("idle");
     setIsRecording(false);
     setLatestPose(null);
+    frameSendingRef.current = false;
+    pendingFrameRef.current = null;
   }, [clearPendingRecording]);
 
   const sendFrame = useCallback((frame: Blob) => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     void frame.arrayBuffer().then((buf) => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(buf);
+      const flush = () => {
+        const activeWs = wsRef.current;
+        if (!activeWs || activeWs.readyState !== WebSocket.OPEN) {
+          frameSendingRef.current = false;
+          pendingFrameRef.current = null;
+          return;
+        }
+        const next = pendingFrameRef.current;
+        if (!next) {
+          frameSendingRef.current = false;
+          return;
+        }
+        pendingFrameRef.current = null;
+        activeWs.send(next);
+        queueMicrotask(flush);
+      };
+
+      if (frameSendingRef.current) {
+        pendingFrameRef.current = buf;
+        return;
+      }
+      frameSendingRef.current = true;
+      ws.send(buf);
+      queueMicrotask(flush);
     });
   }, []);
 

@@ -152,6 +152,15 @@
 **Какой endpoint использует камера в Pose Studio?**  
 `WS /ws/capture` обслуживается отдельным motion-capture сервисом (обычно `:8001`), не FastAPI на `:8000`. Для фронтенда endpoint задаётся через `VITE_MOTION_CAPTURE_WS_URL`.
 
+**Что происходит, если `WS /ws/capture` недоступен?**  
+`MotionCapturePanel` переключается на локальный fallback: браузерный `PoseLandmarker` определяет landmarks, а ретаргетинг продолжается через `POST /api/pipeline/retarget`. В статусе панели показывается, что используется local fallback.
+
+**Зачем нужна 3-секундная T-pose калибровка?**  
+Перед подключением live track UI запускает короткий отсчёт для стабилизации масштаба/центра позы и более устойчивого старта трекинга.
+
+**Почему в Pose Studio видно предупреждение при `telemetry_mode=dds`?**  
+Это защита от ложного ожидания «живой» DDS-телеметрии: если DDS-мост не поднят, часть функциональности может работать в mock/fallback-режиме.
+
 **Что сохраняется после `Stop recording`?**  
 UI сохраняет capture artifact на платформу (`POST /api/platform/artifacts/{name}`) в формате `aurosy_capture_v1` с полями `frames` (`[N,33,3]`) и `bvh`. Этот же `X-User-Id` используется и для pipeline, поэтому артефакт доступен в том же прогоне.
 
@@ -160,3 +169,16 @@ UI сохраняет capture artifact на платформу (`POST /api/platf
 
 **Как восстановиться после падения train/package?**  
 Используйте тот же `pipeline_id` (хранится в `sessionStorage` как `g1_motion_pipeline_id`), нажмите `Sync` в панели, при необходимости повторите `enqueue_train`/`request_pack` с `force: true` через API.
+
+---
+
+## 12. Live Mode troubleshooting
+
+**Камера открывается, но в превью нет скелета**  
+Проверьте права камеры в браузере и наличие `@mediapipe/tasks-vision` в зависимостях фронтенда.
+
+**`/api/pipeline/retarget` отвечает ошибкой 400/500**  
+Проверьте shape landmarks (`[33,3]` или `[N,33,3]`), доступность `joint_map`, совместимость `source_skeleton/target_robot`.
+
+**Сильный jitter в live-позе**  
+Проверьте FPS камеры и сетевую задержку; сервер применяет EMA-сглаживание для последовательностей, а UI дропает промежуточные кадры при перегрузке канала.

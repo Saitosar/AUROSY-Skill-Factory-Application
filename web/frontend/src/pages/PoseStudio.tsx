@@ -39,6 +39,8 @@ export default function PoseStudio() {
   const { t } = useTranslation();
   const apiMeta = useApiMeta();
   const retargetingEnabled = apiMeta?.retargeting_enabled === true;
+  const telemetryMode = apiMeta?.telemetry_mode ?? "unknown";
+  const [liveModeEnabled, setLiveModeEnabled] = useState(false);
   const [liveTrackEnabled, setLiveTrackEnabled] = useState(false);
   const [landmarksArtifact, setLandmarksArtifact] = useState("");
   const [groups, setGroups] = useState<{ name: string; indices: number[] }[]>([]);
@@ -423,8 +425,28 @@ export default function PoseStudio() {
 
         {/* ── Right: Control Panel (overlay) ── */}
         <div className="ps-control-panel">
+          <div className="ps-card ps-kf-bar">
+            <label className="ps-toggle ps-toggle--compact">
+              <input
+                type="checkbox"
+                checked={liveModeEnabled}
+                disabled={!retargetingEnabled}
+                onChange={(e) => setLiveModeEnabled(e.target.checked)}
+              />
+              <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
+              <span className="tag-secondary">{t("pose.liveModeToggle")}</span>
+            </label>
+            {!retargetingEnabled && <span className="muted">{t("pose.motionCaptureUnavailable")}</span>}
+          </div>
+          {telemetryMode === "dds" && (
+            <div className="ps-card ps-error-panel">
+              <p className="warn" style={{ margin: 0 }}>
+                {t("pose.ddsModeWarning")}
+              </p>
+            </div>
+          )}
           <MotionCapturePanel
-            enabled={retargetingEnabled}
+            enabled={retargetingEnabled && liveModeEnabled}
             onLiveTrackChange={setLiveTrackEnabled}
             onJointAnglesUpdate={onLiveTrackAngles}
             onLandmarksArtifactUploaded={setLandmarksArtifact}
