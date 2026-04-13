@@ -9,6 +9,7 @@
 | Архитектура бэкенда Skill Foundry | `docs/skill_foundry/02_architecture.md` |
 | План реализации бэкенда / конвейера / CLI | `docs/skill_foundry/03_implementation_plan.md` |
 | План video-to-motion и retargeting | `docs/skill_foundry/14_video_to_motion_integration.md` |
+| FAQ по video-to-motion / motion pipeline | `docs/skill_foundry/FAQ.md` |
 | Motion capture service package | `packages/motion_capture/README.md` |
 | Docker runbook для motion capture | `docker/motion_capture/README.md` |
 | Запуск FastAPI и связка с инструментами | `web/README.md` |

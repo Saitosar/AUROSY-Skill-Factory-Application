@@ -2,8 +2,11 @@ import { useTranslation } from "react-i18next";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import JointWasmSliderRow from "../components/JointWasmSliderRow";
+import { MotionCapturePanel } from "../components/MotionCapturePanel";
+import { MotionPipelinePanel } from "../components/MotionPipelinePanel";
 import MuJoCoG1Viewer from "../components/mujoco/MuJoCoG1Viewer";
 import { getJoints, savePoseDraft } from "../api/client";
+import { useApiMeta } from "../hooks/useApiMeta";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../mujoco/jointMapping";
 import { jointRangeRad, qposToSkillJointAngles } from "../mujoco/qposToSkillAngles";
 import {
@@ -34,6 +37,10 @@ const KEYFRAME_TIMESTAMP_STEP_S = 0.5;
 
 export default function PoseStudio() {
   const { t } = useTranslation();
+  const apiMeta = useApiMeta();
+  const retargetingEnabled = apiMeta?.retargeting_enabled === true;
+  const [liveTrackEnabled, setLiveTrackEnabled] = useState(false);
+  const [landmarksArtifact, setLandmarksArtifact] = useState("");
   const [groups, setGroups] = useState<{ name: string; indices: number[] }[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -118,7 +125,14 @@ export default function PoseStudio() {
   }, [keyframesListForExport, draftName, t]);
 
   const addWasmPose = useCallback(() => {
-    if (!mergedForExport || savedWasmPoses.length >= MAX_SAVED_WASM_POSES || wasmMotionPlayingRef.current) return;
+    if (
+      !mergedForExport ||
+      savedWasmPoses.length >= MAX_SAVED_WASM_POSES ||
+      wasmMotionPlayingRef.current ||
+      liveTrackEnabled
+    ) {
+      return;
+    }
     setSavedWasmPoses((prev) => [...prev, captureFullJointAnglesSkillKeys(mergedForExport)]);
     toast.success(
       t("pose.addPoseOk", {
@@ -126,12 +140,13 @@ export default function PoseStudio() {
         maxSaved: MAX_SAVED_WASM_POSES,
       })
     );
-  }, [mergedForExport, savedWasmPoses.length, t]);
+  }, [liveTrackEnabled, mergedForExport, savedWasmPoses.length, t]);
 
   const clearWasmSavedPoses = useCallback(() => {
+    if (liveTrackEnabled) return;
     setSavedWasmPoses([]);
     toast.success(t("pose.clearPosesOk"));
-  }, [t]);
+  }, [liveTrackEnabled, t]);
 
   const downloadSdkPoseJson = useCallback(() => {
     const list = keyframesListForExport;
@@ -155,7 +170,7 @@ export default function PoseStudio() {
   }, []);
 
   const playWasmMotion = useCallback(async () => {
-    if (savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlayingRef.current) return;
+    if (savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlayingRef.current || liveTrackEnabled) return;
     wasmMotionCancelRef.current = false;
     setWasmMotionPlaying(true);
     try {
@@ -185,10 +200,10 @@ export default function PoseStudio() {
       setWasmMotionPlaying(false);
       wasmMotionCancelRef.current = false;
     }
-  }, [savedWasmPoses, wasmReady]);
+  }, [liveTrackEnabled, savedWasmPoses, wasmReady]);
 
   const playDance = useCallback(async (dance: DanceSequence) => {
-    if (!wasmReady || wasmMotionPlayingRef.current || dancePlaying) return;
+    if (!wasmReady || wasmMotionPlayingRef.current || dancePlaying || liveTrackEnabled) return;
     danceCancelRef.current = false;
     setDancePlaying(true);
     setWasmMotionPlaying(true);
@@ -222,7 +237,7 @@ export default function PoseStudio() {
       setActiveDanceName(null);
       danceCancelRef.current = false;
     }
-  }, [wasmReady, dancePlaying]);
+  }, [liveTrackEnabled, wasmReady, dancePlaying]);
 
   const effectiveNames = useMemo(() => {
     let n = 0;
@@ -266,7 +281,12 @@ export default function PoseStudio() {
   );
 
   const onWasmJointChange = useCallback((skillKey: string, rad: number) => {
+    if (liveTrackEnabled) return;
     setWasmJointRad((prev) => ({ ...prev, [skillKey]: rad }));
+  }, [liveTrackEnabled]);
+
+  const onLiveTrackAngles = useCallback((jointAngles: Record<string, number>) => {
+    setWasmJointRad((prev) => ({ ...prev, ...jointAngles }));
   }, []);
 
   const filteredGroups =
@@ -337,7 +357,12 @@ export default function PoseStudio() {
             <button
               type="button"
               className="ps-minibar-btn ps-minibar-btn--action"
-              disabled={!mergedForExport || savedWasmPoses.length >= MAX_SAVED_WASM_POSES || wasmMotionPlaying}
+              disabled={
+                !mergedForExport ||
+                savedWasmPoses.length >= MAX_SAVED_WASM_POSES ||
+                wasmMotionPlaying ||
+                liveTrackEnabled
+              }
               onClick={addWasmPose}
               title={t("pose.addPose")}
             >
@@ -350,7 +375,7 @@ export default function PoseStudio() {
             <button
               type="button"
               className="ps-minibar-btn ps-minibar-btn--action"
-              disabled={savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlaying}
+              disabled={savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlaying || liveTrackEnabled}
               onClick={() => void playWasmMotion()}
               title={t("pose.createMotion")}
             >
@@ -382,7 +407,7 @@ export default function PoseStudio() {
                 key={dance.name}
                 type="button"
                 className={`ps-motion-card${activeDanceName === dance.name ? " ps-motion-card--active" : ""}`}
-                disabled={!wasmReady || wasmMotionPlaying || dancePlaying}
+                disabled={!wasmReady || wasmMotionPlaying || dancePlaying || liveTrackEnabled}
                 onClick={() => void playDance(dance)}
                 title={dance.name}
               >
@@ -398,6 +423,18 @@ export default function PoseStudio() {
 
         {/* ── Right: Control Panel (overlay) ── */}
         <div className="ps-control-panel">
+          <MotionCapturePanel
+            enabled={retargetingEnabled}
+            onLiveTrackChange={setLiveTrackEnabled}
+            onJointAnglesUpdate={onLiveTrackAngles}
+            onLandmarksArtifactUploaded={setLandmarksArtifact}
+          />
+          <MotionPipelinePanel
+            apiMeta={apiMeta}
+            landmarksArtifact={landmarksArtifact}
+            onLandmarksArtifactChange={setLandmarksArtifact}
+          />
+
           {/* Keyframes compact toolbar */}
           <div className="ps-kf-bar">
             <span className="ps-kf-label">
@@ -413,12 +450,12 @@ export default function PoseStudio() {
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
-              disabled={wasmMotionPlaying}
+              disabled={wasmMotionPlaying || liveTrackEnabled}
             />
             <button
               type="button"
               className="ps-kf-icon-btn ps-kf-icon-btn--save"
-              disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying}
+              disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying || liveTrackEnabled}
               onClick={() => void saveWasmDraft()}
               title={t("pose.saveDraft")}
             >
@@ -427,7 +464,7 @@ export default function PoseStudio() {
             <button
               type="button"
               className="ps-kf-icon-btn ps-kf-icon-btn--download"
-              disabled={!keyframesListForExport?.length || wasmMotionPlaying}
+              disabled={!keyframesListForExport?.length || wasmMotionPlaying || liveTrackEnabled}
               onClick={downloadSdkPoseJson}
               title={t("pose.downloadSdkPoseJson")}
             >
@@ -436,7 +473,7 @@ export default function PoseStudio() {
             <button
               type="button"
               className="ps-kf-icon-btn ps-kf-icon-btn--danger"
-              disabled={savedWasmPoses.length === 0 || wasmMotionPlaying}
+              disabled={savedWasmPoses.length === 0 || wasmMotionPlaying || liveTrackEnabled}
               onClick={clearWasmSavedPoses}
               title={t("pose.clearSavedPoses")}
             >

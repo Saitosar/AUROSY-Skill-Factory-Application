@@ -1326,6 +1326,7 @@ table.data td.num {
   position: absolute;
   right: 12px;
   top: 12px;
+  height: calc(100% - 24px);
   max-height: calc(100% - 24px);
   z-index: 5;
   width: min(400px, calc(100% - 100px));
@@ -1572,10 +1573,40 @@ table.data td.num {
 }
 
 .ps-card--joints {
-  flex-shrink: 1;
+  flex: 1 1 280px;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.ps-kf-bar,
+.motion-capture-panel,
+.pose-studio-motion-pipeline,
+.ps-error-panel {
+  flex-shrink: 0;
+}
+
+.motion-capture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.motion-capture-collapse-btn {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.motion-capture-collapse-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--color-primary);
 }
 
 .ps-card-header {
@@ -1601,6 +1632,7 @@ table.data td.num {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
 }
 
 .ps-btn--icon {
@@ -1609,10 +1641,11 @@ table.data td.num {
 }
 
 .ps-joints-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: min(100%, 60vh, 600px);
-  max-height: min(100%, 60dvh, 600px);
+  max-height: none;
   overscroll-behavior: contain;
 }
 
