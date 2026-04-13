@@ -142,6 +142,18 @@ export function MotionCapturePanel({
     }
   }, [onLandmarksArtifactUploaded, onRecordingComplete, t, ws]);
 
+  const statusTextKey =
+    ws.connectionState === "connected"
+      ? "pose.motionCaptureConnected"
+      : ws.connectionState === "connecting"
+      ? "pose.motionCaptureConnecting"
+      : ws.connectionState === "idle"
+      ? "pose.motionCaptureIdle"
+      : ws.connectionState === "error"
+      ? "pose.motionCaptureConnectionError"
+      : "pose.motionCaptureDisconnected";
+  const statusClassName = ws.connectionState === "connected" ? "ok" : "muted";
+
   return (
     <section className="motion-capture-panel panel" aria-label={t("pose.motionCaptureTitle")}>
       <div className="motion-capture-header">
@@ -195,9 +207,7 @@ export function MotionCapturePanel({
               </>
             )}
           </div>
-          <p className={ws.isConnected ? "ok" : "muted"}>
-            {ws.isConnected ? t("pose.motionCaptureConnected") : t("pose.motionCaptureDisconnected")}
-          </p>
+          <p className={statusClassName}>{t(statusTextKey)}</p>
           {!enabled && <p className="muted">{t("pose.motionCaptureUnavailable")}</p>}
           {(camera.error || ws.error) && <p className="err">{camera.error || ws.error}</p>}
         </>

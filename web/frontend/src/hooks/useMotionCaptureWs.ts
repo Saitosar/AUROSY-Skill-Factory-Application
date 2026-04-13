@@ -14,6 +14,13 @@ export type RecordingResult = {
   landmarks_frames?: number[][][];
 };
 
+export type MotionCaptureConnectionState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "error";
+
 type PendingRecording = {
   resolve: (value: RecordingResult | null) => void;
   timeoutId: ReturnType<typeof setTimeout>;
@@ -23,12 +30,15 @@ const RECORDING_TIMEOUT_MS = 5000;
 
 export function useMotionCaptureWs() {
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionState, setConnectionState] =
+    useState<MotionCaptureConnectionState>("idle");
   const [isRecording, setIsRecording] = useState(false);
   const [latestPose, setLatestPose] = useState<PoseData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const pendingRecordingRef = useRef<PendingRecording | null>(null);
+  const disconnectRequestedRef = useRef(false);
 
   const clearPendingRecording = useCallback((value: RecordingResult | null) => {
     const pending = pendingRecordingRef.current;
@@ -43,11 +53,17 @@ export function useMotionCaptureWs() {
 
     const resolvedUrl = url ?? motionCaptureWebSocketUrl();
     const ws = new WebSocket(resolvedUrl);
+    let opened = false;
+    let errored = false;
     wsRef.current = ws;
     setError(null);
+    setConnectionState("connecting");
+    disconnectRequestedRef.current = false;
 
     ws.onopen = () => {
+      opened = true;
       setIsConnected(true);
+      setConnectionState("connected");
       setError(null);
     };
 
@@ -56,15 +72,25 @@ export function useMotionCaptureWs() {
       setIsConnected(false);
       setIsRecording(false);
       clearPendingRecording(null);
+      if (disconnectRequestedRef.current) {
+        setConnectionState("idle");
+        disconnectRequestedRef.current = false;
+      } else if (opened) {
+        setConnectionState("disconnected");
+      } else if (!errored) {
+        setConnectionState("disconnected");
+      }
       if (ev.code !== 1000 && ev.reason) {
         setError(`Motion capture closed: ${ev.reason}`);
       }
     };
 
     ws.onerror = () => {
+      errored = true;
       // Browser WebSocket error events carry no details; show URL we tried.
       setError(`Motion capture WebSocket error (${resolvedUrl})`);
       setIsConnected(false);
+      setConnectionState("error");
     };
 
     ws.onmessage = (event) => {
@@ -101,10 +127,12 @@ export function useMotionCaptureWs() {
     clearPendingRecording(null);
     const ws = wsRef.current;
     wsRef.current = null;
+    disconnectRequestedRef.current = true;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
       ws.close();
     }
     setIsConnected(false);
+    setConnectionState("idle");
     setIsRecording(false);
     setLatestPose(null);
   }, [clearPendingRecording]);
@@ -144,6 +172,7 @@ export function useMotionCaptureWs() {
 
   return {
     isConnected,
+    connectionState,
     isRecording,
     latestPose,
     error,
