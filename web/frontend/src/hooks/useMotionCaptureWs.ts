@@ -41,7 +41,8 @@ export function useMotionCaptureWs() {
   const connect = useCallback((url?: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(url ?? motionCaptureWebSocketUrl());
+    const resolvedUrl = url ?? motionCaptureWebSocketUrl();
+    const ws = new WebSocket(resolvedUrl);
     wsRef.current = ws;
     setError(null);
 
@@ -50,15 +51,19 @@ export function useMotionCaptureWs() {
       setError(null);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       wsRef.current = null;
       setIsConnected(false);
       setIsRecording(false);
       clearPendingRecording(null);
+      if (ev.code !== 1000 && ev.reason) {
+        setError(`Motion capture closed: ${ev.reason}`);
+      }
     };
 
     ws.onerror = () => {
-      setError("Motion capture WebSocket error");
+      // Browser WebSocket error events carry no details; show URL we tried.
+      setError(`Motion capture WebSocket error (${resolvedUrl})`);
       setIsConnected(false);
     };
 
