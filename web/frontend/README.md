@@ -1,6 +1,6 @@
 # AUROSY Skill Factory — веб-фронтенд
 
-Vite + React + TypeScript. Общается с FastAPI бэкендом (`/api/*`) и WebSocket телеметрии (`/ws/telemetry`).
+Vite + React + TypeScript. Общается с FastAPI бэкендом (`/api/*`), WebSocket телеметрии (`/ws/telemetry`) и motion-capture сервисом (`/ws/capture`).
 
 ## Запуск
 
@@ -43,6 +43,46 @@ npm run dev
 
 Не смешивайте в коде абсолютные URL и относительные пути вручную: используйте только `import.meta.env.VITE_API_BASE` и функции из `src/api/client.ts` (в т.ч. `getConfiguredApiBase()`). В собранном приложении эффективное значение можно посмотреть на экране **Настройки** (`/settings`). Пользовательская справка: маршрут **`/help`** (ru/en); развёрнутый markdown — [`docs/g1-control-ui/FAQ.md`](../../docs/g1-control-ui/FAQ.md).
 
+## Motion capture WebSocket (`VITE_MOTION_CAPTURE_WS_URL`)
+
+Live Track в `PoseStudio` использует отдельный endpoint motion-capture сервиса.
+
+| Режим | Значение | Поведение |
+|--------|-----------|-----------|
+| Локальная разработка (по умолчанию) | не задавать | Клиент использует `ws://<host>:8001/ws/capture` (или `wss://...` на https) |
+| Явный endpoint capture-сервиса | `VITE_MOTION_CAPTURE_WS_URL=ws://host:8001/ws/capture` | Прямое подключение к указанному WS URL |
+
+Важно: `VITE_API_BASE` влияет на `/api/*` и `/ws/telemetry`, но live track endpoint можно развести отдельно через `VITE_MOTION_CAPTURE_WS_URL`.
+
+## Video-to-motion retarget API
+
+Backend поддерживает `POST /api/pipeline/retarget` для преобразования MediaPipe landmarks в углы G1.
+
+- Вход: `landmarks` как один кадр `[33,3]` или батч `[N,33,3]`.
+- Выход: `joint_order`, `joint_angles_rad`, `mapping_version`, `warnings`, `timing_ms`.
+- Метаданные поддержки смотрите в `GET /api/meta`: `retargeting_enabled`, `retargeting_source_skeleton`, `retargeting_target_robot`.
+- Endpoint использует тот же базовый origin, что и остальные `/api/*`, т.е. работает с текущей схемой `VITE_API_BASE`/Vite proxy без дополнительных прокси-настроек.
+
+## Pose Studio: Camera Live Track flow
+
+- `MotionCapturePanel` включает камеру браузера (`getUserMedia`), стримит JPEG кадры в `WS /ws/capture`.
+- Сервис возвращает landmarks (`type: "pose"`), после чего UI вызывает `POST /api/pipeline/retarget`.
+- Полученные `joint_angles_rad` применяются в состоянии `PoseStudio` и обновляют MuJoCo G1 preview в режиме реального времени.
+- При активном live track ручное изменение позы и playback-кнопки отключаются, чтобы не конфликтовать с входящим потоком.
+
+## Phase 6: Motion skill pipeline (Motion Studio)
+
+При `GET /api/meta` → `motion_pipeline_enabled: true` на странице **Motion Studio** (`/pose`) показывается панель **Motion skill pipeline** (`MotionPipelinePanel`).
+
+- **Идентификатор прогона:** кнопка «Новый прогон» создаёт `pipeline_id` и сохраняет его в `sessionStorage` (`g1_motion_pipeline_id`).
+- **Референс из файла:** сохраните `reference_trajectory.json` через `POST /api/platform/artifacts/{name}`, введите имя и «Загрузить референс» (`build_reference` + `reference_artifact`).
+- **Референс из записи камеры:** во время записи WebSocket буферизуются кадры `[N,33,3]`; по «Stop recording» UI вызывает `POST /api/platform/artifacts/{name}` с `{ "frames": ... }` и подставляет имя в поле **Landmarks artifact**; затем «Собрать референс из landmarks» (`landmarks_artifact`).
+- **Обучение:** по умолчанию **`train_mode: amp`** и конфиг из `src/lib/motionPipelineTrainConfig.ts` (короткий или стандартный прогон по радиокнопке). Режим **Smoke** — быстрый контрактный job без полного AMP. Нужен `mjcf_default` в `GET /api/meta` для AMP.
+- **Пакет:** после успеха job — «Создать пакет» (`request_pack`), затем «Скачать пакет».
+- **Заголовок `X-User-Id`:** маршруты `/api/pipeline/motion/*` и артефакты идут через **`apiFetch`** (как Phase 5) — один и тот же пользователь для записи и пайплайна.
+
+Подробности и recovery: в клоне **AUROSY_creators_factory_platform** — `docs/skill_foundry/14_video_to_motion_integration.md`, раздел **Phase 6**.
+
 ## Phase 5: идентификатор пользователя и `apiFetch`
 
 Запросы к **`/api/platform/*`**, **`/api/jobs*`** и **`/api/packages*`** на бэкенде Phase 5 ожидают заголовок **`X-User-Id`** (см. [`docs/g1-control-ui/backend_references.md`](../../docs/g1-control-ui/backend_references.md)). В коде используйте **`apiFetch`** из `src/api/client.ts` для этих путей — заголовок подставится автоматически, если вы не передали свой `X-User-Id`.
@@ -59,7 +99,7 @@ npm run dev
 
 Маршрут **`/jobs`**: сохранение JSON на платформу (`POST /api/platform/artifacts/{name}`), постановка **`POST /api/jobs/train`** в очередь, список и детали задач с опросом статуса. Детали: **`/jobs/:jobId`**. Тела запросов и поля ответов — в OpenAPI бэкенда (`GET /docs`); в коде см. функции **`savePlatformArtifact`**, **`enqueueTrainJob`**, **`listJobs`**, **`getJob`** в `src/api/client.ts`. Для обработки очереди на сервере должен быть включён worker (часто **`G1_PLATFORM_WORKER_ENABLED`**).
 
-**Ручная приёмка:** с запущенным бэкендом Phase 5 и worker — сохранить тестовый артефакт, поставить train (smoke), убедиться, что задача появляется в списке и в деталях обновляется статус.
+**Ручная приёмка:** с запущенным бэкендом Phase 5 и worker — сохранить тестовый артефакт, поставить train (например `smoke`, затем `amp`), убедиться, что задача появляется в списке и в деталях обновляется статус.
 
 ### Экран «Пакеты» (F15)
 
@@ -69,7 +109,7 @@ npm run dev
 
 ### IA: Конвейер vs Задачи (F16)
 
-Синхронный train — только **`POST /api/pipeline/train`** на экране **Конвейер**. Асинхронная очередь и Skill Bundle — экраны **`/jobs`** и **`/packages`**. После успешного preprocess с `reference_trajectory_json` кнопка на Конвейере открывает `/jobs` с `location.state` (ключ **`pipelineRefTrajectory`** в [`src/lib/jobsPipelineBridge.ts`](src/lib/jobsPipelineBridge.ts)); форма reference предзаполняется, **enqueue не вызывается** до нажатия «Поставить в очередь». Подробности — главная, FAQ, `/help`.
+Синхронный train — только **`POST /api/pipeline/train`** на экране **Конвейер** (`mode`: `smoke`/`train`/`amp`). Асинхронная очередь и Skill Bundle — экраны **`/jobs`** и **`/packages`** (тот же набор режимов через `POST /api/jobs/train`). После успешного preprocess с `reference_trajectory_json` кнопка на Конвейере открывает `/jobs` с `location.state` (ключ **`pipelineRefTrajectory`** в [`src/lib/jobsPipelineBridge.ts`](src/lib/jobsPipelineBridge.ts)); форма reference предзаполняется, **enqueue не вызывается** до нажатия «Поставить в очередь». Подробности — главная, FAQ, `/help`.
 
 Копируйте `.env.example` в `.env` при необходимости и правьте локально; `.env` не коммитьте с секретами.
 
