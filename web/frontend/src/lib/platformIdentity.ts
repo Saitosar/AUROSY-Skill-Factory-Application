@@ -51,5 +51,6 @@ export function isPlatformPhase5Path(pathWithoutQuery: string): boolean {
   if (p.startsWith("/api/platform/")) return true;
   if (p === "/api/jobs" || p.startsWith("/api/jobs/")) return true;
   if (p === "/api/packages" || p.startsWith("/api/packages/")) return true;
+  if (p.startsWith("/api/pipeline/motion")) return true;
   return false;
 }

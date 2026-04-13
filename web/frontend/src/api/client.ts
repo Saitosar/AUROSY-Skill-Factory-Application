@@ -1,6 +1,7 @@
 import { getPlatformUserId, isPlatformPhase5Path } from "@/lib/platformIdentity";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const MOTION_CAPTURE_WS_URL = import.meta.env.VITE_MOTION_CAPTURE_WS_URL ?? "";
 
 export {
   clearStoredPlatformUserId,
@@ -71,6 +72,13 @@ export type ApiMetaResponse = {
    * (see `web/backend/joint_command_router.py` in this repo for an integration snippet).
    */
   joint_command_enabled?: boolean | null;
+  retargeting_enabled?: boolean | null;
+  retargeting_source_skeleton?: string | null;
+  retargeting_target_robot?: string | null;
+  /** Phase 6: server exposes ``POST /api/pipeline/motion/run`` when true. */
+  motion_pipeline_enabled?: boolean | null;
+  /** Optional cap for ``tracking_mean_mse`` when publishing ``manifest.motion`` bundles. */
+  motion_publish_max_mse?: number | null;
 };
 
 export async function getMeta() {
@@ -216,6 +224,11 @@ export type TrainRequestBody = {
   mode?: string;
   reference_path?: string;
   config_path?: string;
+  config?: Record<string, unknown>;
+  demonstration_path?: string;
+  /** AMP eval-only: server-resolved path to policy zip (host path). */
+  eval_only?: boolean;
+  checkpoint_path?: string;
 };
 
 export type PreprocessOptions = {
@@ -258,6 +271,37 @@ export async function runValidateMotion(
   return r.json() as Promise<MotionValidationReport>;
 }
 
+export type RetargetRequestBody = {
+  landmarks: number[][] | number[][][];
+  source_skeleton?: string;
+  target_robot?: string;
+  clip_to_limits?: boolean;
+};
+
+export type RetargetResponseBody = {
+  joint_order: string[];
+  joint_angles_rad: number[] | number[][];
+  source_skeleton: string;
+  target_robot: string;
+  mapping_version: string;
+  frame_count: number;
+  dropped_frames: number;
+  warnings: string[];
+  timing_ms: number;
+};
+
+export async function runRetarget(
+  body: RetargetRequestBody
+): Promise<RetargetResponseBody> {
+  const r = await fetch(apiUrl("/api/pipeline/retarget"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await readApiErrorMessage(r));
+  return r.json() as Promise<RetargetResponseBody>;
+}
+
 export async function runPlayback(body: PlaybackRequestBody): Promise<PipelineSubprocessJsonResult> {
   const r = await fetch(apiUrl("/api/pipeline/playback"), {
     method: "POST",
@@ -278,6 +322,61 @@ export async function runTrain(body: TrainRequestBody): Promise<PipelineSubproce
   return r.json() as Promise<PipelineSubprocessJsonResult>;
 }
 
+// --- Phase 6: motion pipeline orchestration (see platform ``motion_pipeline.py``) ---
+
+export type MotionPipelineAction =
+  | "init"
+  | "attach_capture"
+  | "build_reference"
+  | "enqueue_train"
+  | "sync"
+  | "request_pack";
+
+export type MotionPipelineRunBody = {
+  pipeline_id: string;
+  action: MotionPipelineAction;
+  force?: boolean;
+  capture_artifact?: string | null;
+  landmarks_artifact?: string | null;
+  reference_artifact?: string | null;
+  frequency_hz?: number;
+  train_config?: Record<string, unknown>;
+  train_mode?: "smoke" | "train" | "amp";
+  demonstration_dataset?: unknown;
+  demonstration_artifact?: string | null;
+  eval_only?: boolean;
+  checkpoint_artifact?: string | null;
+  motion_export?: Record<string, unknown> | null;
+  source_skeleton?: string;
+  target_robot?: string;
+  clip_to_limits?: boolean;
+};
+
+export type MotionPipelineRunResponse = {
+  ok?: boolean;
+  pipeline_id: string;
+  state: Record<string, unknown>;
+  job_id?: string;
+  package_id?: string;
+  idempotent?: boolean;
+} & Record<string, unknown>;
+
+export async function postMotionPipelineRun(body: MotionPipelineRunBody): Promise<MotionPipelineRunResponse> {
+  const r = await apiFetch("/api/pipeline/motion/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await readApiErrorMessage(r));
+  return r.json() as Promise<MotionPipelineRunResponse>;
+}
+
+export async function getMotionPipelineStatus(pipelineId: string): Promise<MotionPipelineRunResponse> {
+  const r = await apiFetch(`/api/pipeline/motion/${encodeURIComponent(pipelineId)}`);
+  if (!r.ok) throw new Error(await readApiErrorMessage(r));
+  return r.json() as Promise<MotionPipelineRunResponse>;
+}
+
 export async function getCliDetection() {
   const r = await fetch(apiUrl("/api/pipeline/detect-cli"));
   if (!r.ok) throw new Error(await r.text());
@@ -289,7 +388,7 @@ export async function getCliDetection() {
 // --- Phase 5: platform artifacts & async train jobs (F14; bodies per OpenAPI backend) ---
 
 export type TrainJobEnqueueBody = {
-  mode: "smoke" | "train";
+  mode: "smoke" | "train" | "amp";
   /** Optional; server defaults to `{}` and merges `output_dir` into train_config.json. */
   config?: Record<string, unknown>;
   /** Mutually exclusive with reference_artifact on the server; send only one. */
@@ -298,6 +397,12 @@ export type TrainJobEnqueueBody = {
   /** Mutually exclusive with demonstration_artifact; send only one. */
   demonstration_dataset?: unknown;
   demonstration_artifact?: string;
+  /** When true with mode amp, runs eval-only (writes eval_motion.json); requires checkpoint_artifact. */
+  eval_only?: boolean;
+  /** Filename of policy zip under user artifacts (used with eval_only). */
+  checkpoint_artifact?: string;
+  /** Optional hints stored in job workspace for packaging (e.g. joint_map_version). */
+  motion_export?: Record<string, unknown>;
 };
 
 /** Normalized job id from list/detail responses (backend may use job_id or id). */
@@ -596,4 +701,18 @@ export function telemetryWebSocketUrl(): string {
   const u = new URL(API_BASE);
   const wsProto = u.protocol === "https:" ? "wss:" : "ws:";
   return `${wsProto}//${u.host}/ws/telemetry`;
+}
+
+/** WebSocket URL for motion capture service (`/ws/capture`). */
+export function motionCaptureWebSocketUrl(): string {
+  if (MOTION_CAPTURE_WS_URL.trim()) return MOTION_CAPTURE_WS_URL.trim();
+
+  if (API_BASE) {
+    const u = new URL(API_BASE);
+    const wsProto = u.protocol === "https:" ? "wss:" : "ws:";
+    return `${wsProto}//${u.hostname}:8001/ws/capture`;
+  }
+
+  const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${wsProto}//${window.location.hostname}:8001/ws/capture`;
 }

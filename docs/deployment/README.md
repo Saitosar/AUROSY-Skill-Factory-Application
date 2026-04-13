@@ -16,6 +16,8 @@
 - [ ] **CORS**: в dev часто `allow_origins=["*"]`; в продакшене сузить до доверенных хостов UI.
 - [ ] **`VITE_API_BASE`**: при сборке фронта задать URL API без завершающего `/` или оставить пустым при same-origin за прокси.
 - [ ] **Прокси WebSocket**: путь `/ws/telemetry` пробрасывается с теми же правилами, что и `/api`.
+- [ ] **Video-to-motion API (если включено):** `POST /api/pipeline/retarget` доступен с того же origin.
+- [ ] **Motion capture WS:** endpoint `WS /ws/capture` доступен для фронтенда (обычно отдельный сервис на `:8001`); при split-host варианте задан `VITE_MOTION_CAPTURE_WS_URL` и проверены CORS/WS-proxy правила.
 - [ ] **Phase 5**: заголовок `X-User-Id` согласован между UI и бэкендом.
 - [ ] **Очередь jobs**: включён фоновый worker на бэкенде (`G1_PLATFORM_WORKER_ENABLED`).
 - [ ] **MuJoCo WASM**: статика `public/mujoco/g1/` и `*.wasm` отдаются с долгим `Cache-Control` (immutable, max-age от недели).

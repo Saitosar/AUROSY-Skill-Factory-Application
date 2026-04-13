@@ -5,7 +5,7 @@ import * as THREE from "three";
 import * as ort from "onnxruntime-web";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../../mujoco/jointMapping";
 import { loadMenagerieG1 } from "../../mujoco/loadMenagerieG1";
-import { qposVecGet, qposVecSet, skillKeyQposAddress } from "../../mujoco/qposToSkillAngles";
+import { qposVecSet, skillKeyQposAddress } from "../../mujoco/qposToSkillAngles";
 
 export type MuJoCoG1ViewerProps = {
   jointRad: Record<string, number>;
