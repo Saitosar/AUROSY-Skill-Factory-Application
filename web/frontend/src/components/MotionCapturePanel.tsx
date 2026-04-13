@@ -31,8 +31,10 @@ export function MotionCapturePanel({
   motionCaptureUrl,
 }: MotionCapturePanelProps) {
   const { t } = useTranslation();
-  const camera = useCameraCapture();
+  const landmarksForCenterRef = useRef<number[][] | null | undefined>(undefined);
   const ws = useMotionCaptureWs();
+  landmarksForCenterRef.current = ws.latestPose?.landmarks;
+  const camera = useCameraCapture(landmarksForCenterRef);
   const frameTimerRef = useRef<number | null>(null);
   const retargetInFlightRef = useRef(false);
   const lastRetargetAtRef = useRef(0);
@@ -169,7 +171,23 @@ export function MotionCapturePanel({
       </div>
       {!collapsed && (
         <>
-          <video ref={camera.videoRef} autoPlay playsInline muted className="motion-capture-video" />
+          <div className="motion-capture-preview-wrap">
+            <video
+              ref={camera.videoRef}
+              className="motion-capture-source-video"
+              autoPlay
+              playsInline
+              muted
+              aria-hidden
+            />
+            <canvas
+              ref={camera.outputCanvasRef}
+              className="motion-capture-preview-canvas"
+              width={640}
+              height={480}
+              aria-label={t("pose.motionCaptureTitle")}
+            />
+          </div>
           {ws.latestPose && (
             <p className="motion-capture-confidence">
               {t("pose.motionCaptureConfidence")}: {(ws.latestPose.confidence * 100).toFixed(0)}%
