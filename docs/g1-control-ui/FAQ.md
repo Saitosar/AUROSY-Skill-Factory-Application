@@ -16,6 +16,7 @@
 8. [Платформа: артефакты и очередь train](#8-платформа-артефакты-и-очередь-train)
 9. [Продакшен и развёртывание](#9-продакшен-и-развёртывание)
 10. [Язык интерфейса (i18n)](#10-язык-интерфейса-i18n)
+11. [Motion Studio: камера и pipeline](#11-motion-studio-камера-и-pipeline)
 
 ---
 
@@ -143,3 +144,19 @@
 
 **Как переключить русский и английский?**  
 Переключатель **RU / EN** в сайдбаре и на странице **Настройки**. Выбор сохраняется (в т.ч. `localStorage`), язык документа (`<html lang>`) обновляется.
+
+---
+
+## 11. Motion Studio: камера и pipeline
+
+**Какой endpoint использует камера в Pose Studio?**  
+`WS /ws/capture` обслуживается отдельным motion-capture сервисом (обычно `:8001`), не FastAPI на `:8000`. Для фронтенда endpoint задаётся через `VITE_MOTION_CAPTURE_WS_URL`.
+
+**Что сохраняется после `Stop recording`?**  
+UI сохраняет capture artifact на платформу (`POST /api/platform/artifacts/{name}`) в формате `aurosy_capture_v1` с полями `frames` (`[N,33,3]`) и `bvh`. Этот же `X-User-Id` используется и для pipeline, поэтому артефакт доступен в том же прогоне.
+
+**Как из записи строится референс?**  
+Базовый путь в UI: поле **Landmarks artifact** + кнопка «Собрать референс из landmarks» (`action: build_reference`, `landmarks_artifact`). На бэкенде также поддержаны `capture_artifact` и `bvh_artifact` для `build_reference`.
+
+**Как восстановиться после падения train/package?**  
+Используйте тот же `pipeline_id` (хранится в `sessionStorage` как `g1_motion_pipeline_id`), нажмите `Sync` в панели, при необходимости повторите `enqueue_train`/`request_pack` с `force: true` через API.

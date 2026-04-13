@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { runRetarget, savePlatformArtifact } from "../api/client";
@@ -37,6 +37,7 @@ export function MotionCapturePanel({
   const retargetInFlightRef = useRef(false);
   const lastRetargetAtRef = useRef(0);
   const landmarksBufferRef = useRef<number[][][]>([]);
+  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     onLiveTrackChange(enabled && camera.isCapturing && ws.isConnected);
@@ -119,12 +120,20 @@ export function MotionCapturePanel({
     if (result && onRecordingComplete) {
       onRecordingComplete(result);
     }
-    const frames = landmarksBufferRef.current;
+    const frames =
+      result?.landmarks_frames && result.landmarks_frames.length > 0
+        ? result.landmarks_frames
+        : landmarksBufferRef.current;
     landmarksBufferRef.current = [];
     if (frames.length === 0) return;
     const name = `capture-landmarks-${Date.now()}.json`;
     try {
-      await savePlatformArtifact(name, { frames });
+      await savePlatformArtifact(name, {
+        schema_version: "aurosy_capture_v1",
+        source: "motion_capture_ws",
+        frames,
+        bvh: result?.bvh ?? "",
+      });
       toast.success(t("pose.motionCaptureLandmarksSaved", { name, count: frames.length }));
       onLandmarksArtifactUploaded?.(name);
     } catch (e) {
@@ -135,50 +144,64 @@ export function MotionCapturePanel({
 
   return (
     <section className="motion-capture-panel panel" aria-label={t("pose.motionCaptureTitle")}>
-      <h2 className="pose-studio-panel-heading">{t("pose.motionCaptureTitle")}</h2>
-      <video ref={camera.videoRef} autoPlay playsInline muted className="motion-capture-video" />
-      {ws.latestPose && (
-        <p className="motion-capture-confidence">
-          {t("pose.motionCaptureConfidence")}: {(ws.latestPose.confidence * 100).toFixed(0)}%
-        </p>
-      )}
-      <div className="motion-capture-controls">
-        {!camera.isCapturing ? (
-          <button
-            type="button"
-            className="secondary"
-            disabled={!enabled}
-            onClick={() => void handleStartCamera()}
-          >
-            {t("pose.motionCaptureStartCamera")}
-          </button>
-        ) : (
-          <>
-            <button type="button" className="secondary" onClick={handleStopCamera}>
-              {t("pose.motionCaptureStopCamera")}
-            </button>
-            {!ws.isRecording ? (
+      <div className="motion-capture-header">
+        <h2 className="pose-studio-panel-heading">{t("pose.motionCaptureTitle")}</h2>
+        <button
+          type="button"
+          className="motion-capture-collapse-btn"
+          aria-expanded={!collapsed}
+          onClick={() => setCollapsed((v) => !v)}
+        >
+          {collapsed ? "Expand" : "Collapse"}
+        </button>
+      </div>
+      {!collapsed && (
+        <>
+          <video ref={camera.videoRef} autoPlay playsInline muted className="motion-capture-video" />
+          {ws.latestPose && (
+            <p className="motion-capture-confidence">
+              {t("pose.motionCaptureConfidence")}: {(ws.latestPose.confidence * 100).toFixed(0)}%
+            </p>
+          )}
+          <div className="motion-capture-controls">
+            {!camera.isCapturing ? (
               <button
                 type="button"
                 className="secondary"
-                disabled={!enabled || !ws.isConnected}
-                onClick={handleStartRecording}
+                disabled={!enabled}
+                onClick={() => void handleStartCamera()}
               >
-                {t("pose.motionCaptureStartRecording")}
+                {t("pose.motionCaptureStartCamera")}
               </button>
             ) : (
-              <button type="button" className="secondary" onClick={() => void handleStopRecording()}>
-                {t("pose.motionCaptureStopRecording")}
-              </button>
+              <>
+                <button type="button" className="secondary" onClick={handleStopCamera}>
+                  {t("pose.motionCaptureStopCamera")}
+                </button>
+                {!ws.isRecording ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={!enabled || !ws.isConnected}
+                    onClick={handleStartRecording}
+                  >
+                    {t("pose.motionCaptureStartRecording")}
+                  </button>
+                ) : (
+                  <button type="button" className="secondary" onClick={() => void handleStopRecording()}>
+                    {t("pose.motionCaptureStopRecording")}
+                  </button>
+                )}
+              </>
             )}
-          </>
-        )}
-      </div>
-      <p className={ws.isConnected ? "ok" : "muted"}>
-        {ws.isConnected ? t("pose.motionCaptureConnected") : t("pose.motionCaptureDisconnected")}
-      </p>
-      {!enabled && <p className="muted">{t("pose.motionCaptureUnavailable")}</p>}
-      {(camera.error || ws.error) && <p className="err">{camera.error || ws.error}</p>}
+          </div>
+          <p className={ws.isConnected ? "ok" : "muted"}>
+            {ws.isConnected ? t("pose.motionCaptureConnected") : t("pose.motionCaptureDisconnected")}
+          </p>
+          {!enabled && <p className="muted">{t("pose.motionCaptureUnavailable")}</p>}
+          {(camera.error || ws.error) && <p className="err">{camera.error || ws.error}</p>}
+        </>
+      )}
     </section>
   );
 }

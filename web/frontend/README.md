@@ -68,6 +68,7 @@ Backend поддерживает `POST /api/pipeline/retarget` для преоб
 - `MotionCapturePanel` включает камеру браузера (`getUserMedia`), стримит JPEG кадры в `WS /ws/capture`.
 - Сервис возвращает landmarks (`type: "pose"`), после чего UI вызывает `POST /api/pipeline/retarget`.
 - Полученные `joint_angles_rad` применяются в состоянии `PoseStudio` и обновляют MuJoCo G1 preview в режиме реального времени.
+- При `type: "recording_stopped"` UI получает `bvh` и `landmarks_frames`, сохраняет platform artifact формата `aurosy_capture_v1` (`frames` + `bvh`) и автоматически заполняет поле **Landmarks artifact** в Motion pipeline.
 - При активном live track ручное изменение позы и playback-кнопки отключаются, чтобы не конфликтовать с входящим потоком.
 
 ## Phase 6: Motion skill pipeline (Motion Studio)
@@ -76,7 +77,7 @@ Backend поддерживает `POST /api/pipeline/retarget` для преоб
 
 - **Идентификатор прогона:** кнопка «Новый прогон» создаёт `pipeline_id` и сохраняет его в `sessionStorage` (`g1_motion_pipeline_id`).
 - **Референс из файла:** сохраните `reference_trajectory.json` через `POST /api/platform/artifacts/{name}`, введите имя и «Загрузить референс» (`build_reference` + `reference_artifact`).
-- **Референс из записи камеры:** во время записи WebSocket буферизуются кадры `[N,33,3]`; по «Stop recording» UI вызывает `POST /api/platform/artifacts/{name}` с `{ "frames": ... }` и подставляет имя в поле **Landmarks artifact**; затем «Собрать референс из landmarks» (`landmarks_artifact`).
+- **Референс из записи камеры:** по «Stop recording» UI сохраняет capture artifact (`schema_version: "aurosy_capture_v1"`, `frames`, `bvh`) через `POST /api/platform/artifacts/{name}` и подставляет имя в поле **Landmarks artifact**; затем «Собрать референс из landmarks» (`landmarks_artifact`). Сервер также поддерживает `capture_artifact` и `bvh_artifact` в `build_reference`.
 - **Обучение:** по умолчанию **`train_mode: amp`** и конфиг из `src/lib/motionPipelineTrainConfig.ts` (короткий или стандартный прогон по радиокнопке). Режим **Smoke** — быстрый контрактный job без полного AMP. Нужен `mjcf_default` в `GET /api/meta` для AMP.
 - **Пакет:** после успеха job — «Создать пакет» (`request_pack`), затем «Скачать пакет».
 - **Заголовок `X-User-Id`:** маршруты `/api/pipeline/motion/*` и артефакты идут через **`apiFetch`** (как Phase 5) — один и тот же пользователь для записи и пайплайна.

@@ -11,6 +11,7 @@ export type RecordingResult = {
   bvh: string;
   duration_sec: number;
   frame_count: number;
+  landmarks_frames?: number[][][];
 };
 
 type PendingRecording = {
@@ -80,6 +81,9 @@ export function useMotionCaptureWs() {
             bvh: String(payload.bvh ?? ""),
             duration_sec: Number(payload.duration_sec ?? 0),
             frame_count: Number(payload.frame_count ?? 0),
+            landmarks_frames: Array.isArray(payload.landmarks_frames)
+              ? (payload.landmarks_frames as number[][][])
+              : undefined,
           });
         }
       } catch {

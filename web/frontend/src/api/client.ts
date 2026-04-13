@@ -338,6 +338,7 @@ export type MotionPipelineRunBody = {
   force?: boolean;
   capture_artifact?: string | null;
   landmarks_artifact?: string | null;
+  bvh_artifact?: string | null;
   reference_artifact?: string | null;
   frequency_hz?: number;
   train_config?: Record<string, unknown>;
