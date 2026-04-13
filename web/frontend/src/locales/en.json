@@ -405,7 +405,10 @@
     "motionCaptureIdle": "Press \"Start camera\" to connect live track",
     "motionCaptureConnectionError": "Motion capture socket connection error",
     "motionCaptureDisconnected": "Motion capture socket disconnected",
+    "motionCaptureLocalFallback": "Using local MediaPipe fallback (WS unavailable)",
     "motionCaptureUnavailable": "Retargeting is unavailable on this backend",
+    "liveModeToggle": "Live Mode",
+    "ddsModeWarning": "Backend telemetry_mode=dds. Pose Studio may use mock simulation unless DDS bridge is active.",
     "motionCaptureLandmarksSaved": "Saved {{count}} pose frames as platform artifact \"{{name}}\". Use «Build reference from landmarks» in the pipeline panel.",
     "motionCaptureLandmarksSaveFail": "Could not save landmarks artifact",
     "fallbackGroups": {

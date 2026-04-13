@@ -110,6 +110,7 @@ flowchart TB
 4. **Платформа / задачи:** сохранение JSON как артефакта → постановка train в очередь → опрос `GET /api/jobs/{id}` до терминального статуса.
 5. **Live Track в Pose Studio:** `MotionCapturePanel` отправляет JPEG кадры в `WS /ws/capture`, получает landmarks, отправляет их в `POST /api/pipeline/retarget`, затем обновляет `wasmJointRad` в `PoseStudio` для live preview.
 6. **Телеметрия (API):** эндпоинт `/ws/telemetry` остаётся доступным контрактом; на **Главной** при доступном API показывается `telemetry_mode` из `GET /api/meta`.
+7. **Fallback-path:** если `WS /ws/capture` недоступен, фронтенд переключается на локальный `PoseLandmarker` и продолжает ретаргетинг через `POST /api/pipeline/retarget`.
 
 ---
 
@@ -148,3 +149,23 @@ flowchart TB
 - [FAQ.md](FAQ.md) — частые вопросы.
 - [backend_references.md](backend_references.md) — документы и пути в репозитории бэкенда.
 - [../mujoco-wasm-browser.md](../mujoco-wasm-browser.md) — 3D MuJoCo в браузере.
+
+---
+
+## 8. Live Mode contracts (frontend)
+
+- **Message types (`WS /ws/capture`)**: `ping`, `pong`, `pose`, `recording_started`, `recording_stopped`.
+- **Pose payload (runtime)**: `landmarks`, `confidence`, `timestamp_ms`, optional `joint_order`, optional `joint_angles_rad`.
+- **Env-contracts**:
+  - `VITE_API_BASE` — REST + `/ws/telemetry` origin.
+  - `VITE_MOTION_CAPTURE_WS_URL` — отдельный endpoint capture-сервиса.
+- **UI contracts**:
+  - Live Mode включается только при `retargeting_enabled`.
+  - Перед live подключением запускается 3-сек калибровка.
+  - При `telemetry_mode=dds` показывается предупреждение о возможном mock fallback.
+
+### Rollout / rollback
+
+- Старт: флаг `retargeting_enabled=true` только на стендах разработки.
+- Выкатка: staged enablement по окружениям (dev → staging → prod).
+- Откат: отключить Live Mode toggle (через backend meta flag) и оставить Motion Studio в ручном режиме/Mock telemetry.

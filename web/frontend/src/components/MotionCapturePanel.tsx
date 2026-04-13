@@ -2,8 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { runRetarget, savePlatformArtifact } from "../api/client";
+import { LiveCalibration } from "../components/LiveCalibration";
+import { LiveModeCamera } from "../components/LiveModeCamera";
 import { useCameraCapture } from "../hooks/useCameraCapture";
+import { useLiveRecorder } from "../hooks/useLiveRecorder";
 import { type RecordingResult, useMotionCaptureWs } from "../hooks/useMotionCaptureWs";
+import { usePoseLandmarker } from "../hooks/usePoseLandmarker";
+import { LIVE_MODE_DEFAULTS } from "../lib/liveContracts";
 
 type MotionCapturePanelProps = {
   enabled: boolean;
@@ -15,8 +20,8 @@ type MotionCapturePanelProps = {
   motionCaptureUrl?: string;
 };
 
-const FRAME_INTERVAL_MS = 66;
-const RETARGET_INTERVAL_MS = 100;
+const FRAME_INTERVAL_MS = Math.round(1000 / LIVE_MODE_DEFAULTS.captureFps);
+const RETARGET_INTERVAL_MS = Math.round(1000 / LIVE_MODE_DEFAULTS.retargetFps);
 
 function cloneLandmarksFrame(landmarks: number[][]): number[][] {
   return landmarks.map((row) => row.slice());
@@ -39,6 +44,10 @@ export function MotionCapturePanel({
   const retargetInFlightRef = useRef(false);
   const lastRetargetAtRef = useRef(0);
   const landmarksBufferRef = useRef<number[][][]>([]);
+  const poseLandmarker = usePoseLandmarker();
+  const localRecorder = useLiveRecorder();
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [pendingConnect, setPendingConnect] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
@@ -60,6 +69,16 @@ export function MotionCapturePanel({
   }, [camera.captureFrame, camera.isCapturing, enabled, ws.isConnected, ws.sendFrame]);
 
   useEffect(() => {
+    if (!camera.isCapturing) {
+      poseLandmarker.stop();
+      return;
+    }
+    const video = camera.videoRef.current;
+    if (!video) return;
+    void poseLandmarker.start(video);
+  }, [camera.isCapturing, camera.videoRef, poseLandmarker]);
+
+  useEffect(() => {
     if (!ws.isRecording || !ws.latestPose) return;
     const lm = ws.latestPose.landmarks;
     if (!Array.isArray(lm) || lm.length !== 33) return;
@@ -69,15 +88,33 @@ export function MotionCapturePanel({
   }, [ws.isRecording, ws.latestPose]);
 
   useEffect(() => {
-    const pose = ws.latestPose;
-    if (!enabled || !pose) return;
+    if (!enabled) return;
+    const wsPose = ws.latestPose;
+    if (
+      wsPose?.joint_order &&
+      wsPose.joint_angles_rad &&
+      wsPose.joint_order.length === wsPose.joint_angles_rad.length &&
+      wsPose.joint_order.length > 0
+    ) {
+      const mapped: Record<string, number> = {};
+      wsPose.joint_order.forEach((jointName, idx) => {
+        const value = wsPose.joint_angles_rad?.[idx];
+        if (typeof value === "number" && Number.isFinite(value)) mapped[jointName] = value;
+      });
+      onJointAnglesUpdate(mapped);
+      localRecorder.push(mapped);
+      return;
+    }
+
+    const pose = wsPose?.landmarks ?? poseLandmarker.landmarks;
+    if (!pose) return;
     if (retargetInFlightRef.current) return;
     const now = Date.now();
     if (now - lastRetargetAtRef.current < RETARGET_INTERVAL_MS) return;
 
     retargetInFlightRef.current = true;
     lastRetargetAtRef.current = now;
-    void runRetarget({ landmarks: pose.landmarks })
+    void runRetarget({ landmarks: pose })
       .then((result) => {
         const values = Array.isArray(result.joint_angles_rad)
           ? (result.joint_angles_rad as number[])
@@ -91,34 +128,52 @@ export function MotionCapturePanel({
           }
         });
         onJointAnglesUpdate(mapped);
+        localRecorder.push(mapped);
       })
-      .catch(() => {
-        /* keep panel responsive even when retarget fails */
+      .catch((error: unknown) => {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg) {
+          // Non-fatal: keep panel responsive on transient backend hiccups.
+          setCollapsed((prev) => prev);
+        }
       })
       .finally(() => {
         retargetInFlightRef.current = false;
       });
-  }, [enabled, onJointAnglesUpdate, ws.latestPose]);
+  }, [enabled, localRecorder, onJointAnglesUpdate, poseLandmarker.landmarks, ws.latestPose]);
+
+  const connectAfterCalibration = useCallback(() => {
+    setIsCalibrating(false);
+    if (!pendingConnect) return;
+    ws.connect(motionCaptureUrl);
+    setPendingConnect(false);
+  }, [motionCaptureUrl, pendingConnect, ws]);
 
   const handleStartCamera = useCallback(async () => {
     if (!enabled) return;
     const started = await camera.startCapture();
     if (!started) return;
-    ws.connect(motionCaptureUrl);
-  }, [camera, enabled, motionCaptureUrl, ws]);
+    setIsCalibrating(true);
+    setPendingConnect(true);
+  }, [camera, enabled]);
 
   const handleStopCamera = useCallback(() => {
     camera.stopCapture();
     ws.disconnect();
-  }, [camera, ws]);
+    setIsCalibrating(false);
+    setPendingConnect(false);
+    localRecorder.stop();
+  }, [camera, localRecorder, ws]);
 
   const handleStartRecording = useCallback(() => {
     landmarksBufferRef.current = [];
-    ws.startRecording();
-  }, [ws]);
+    if (ws.isConnected) ws.startRecording();
+    localRecorder.start();
+  }, [localRecorder, ws]);
 
   const handleStopRecording = useCallback(async () => {
-    const result = await ws.stopRecording();
+    const result = ws.isConnected ? await ws.stopRecording() : null;
+    const localFrames = localRecorder.stop();
     if (result && onRecordingComplete) {
       onRecordingComplete(result);
     }
@@ -135,6 +190,7 @@ export function MotionCapturePanel({
         source: "motion_capture_ws",
         frames,
         bvh: result?.bvh ?? "",
+        local_joint_recording: localFrames,
       });
       toast.success(t("pose.motionCaptureLandmarksSaved", { name, count: frames.length }));
       onLandmarksArtifactUploaded?.(name);
@@ -142,13 +198,15 @@ export function MotionCapturePanel({
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(t("pose.motionCaptureLandmarksSaveFail"), { description: msg });
     }
-  }, [onLandmarksArtifactUploaded, onRecordingComplete, t, ws]);
+  }, [localRecorder, onLandmarksArtifactUploaded, onRecordingComplete, t, ws]);
 
   const statusTextKey =
     ws.connectionState === "connected"
       ? "pose.motionCaptureConnected"
       : ws.connectionState === "connecting"
       ? "pose.motionCaptureConnecting"
+      : camera.isCapturing && !ws.isConnected && poseLandmarker.landmarks
+      ? "pose.motionCaptureLocalFallback"
       : ws.connectionState === "idle"
       ? "pose.motionCaptureIdle"
       : ws.connectionState === "error"
@@ -171,22 +229,16 @@ export function MotionCapturePanel({
       </div>
       {!collapsed && (
         <>
-          <div className="motion-capture-preview-wrap">
-            <video
-              ref={camera.videoRef}
-              className="motion-capture-source-video"
-              autoPlay
-              playsInline
-              muted
-              aria-hidden
+          <div style={{ position: "relative" }}>
+            <LiveModeCamera
+              videoRef={camera.videoRef}
+              canvasRef={camera.outputCanvasRef}
+              landmarks={poseLandmarker.landmarks}
+              confidence={poseLandmarker.confidence}
+              fps={poseLandmarker.fps}
+              title={t("pose.motionCaptureTitle")}
             />
-            <canvas
-              ref={camera.outputCanvasRef}
-              className="motion-capture-preview-canvas"
-              width={640}
-              height={480}
-              aria-label={t("pose.motionCaptureTitle")}
-            />
+            <LiveCalibration active={isCalibrating} onComplete={connectAfterCalibration} />
           </div>
           {ws.latestPose && (
             <p className="motion-capture-confidence">
