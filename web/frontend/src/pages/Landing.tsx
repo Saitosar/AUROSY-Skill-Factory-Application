@@ -464,25 +464,215 @@ export function LandingHome() {
   );
 }
 
-export function LandingProduct() {
-  return (
-    <PageTransition direction="right">
-      <div className="flex h-full items-center px-6 lg:px-12 xl:px-20">
-        <div className="max-w-[1400px] mx-auto w-full grid md:grid-cols-3 gap-6">
-          {[
-            { title: "Motion Studio", desc: "Interactive 3D robot control with real-time MuJoCo physics simulation in your browser.", icon: "🤖" },
-            { title: "Skill Authoring", desc: "Design complex robot behaviors with visual keyframe editor and AI-assisted motion planning.", icon: "✨" },
-            { title: "RL Training", desc: "Train reinforcement learning policies with PPO and deploy ONNX models to real hardware.", icon: "🧠" },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 hover:bg-white/[0.05] hover:border-purple-500/20 transition-all group"
-            >
-              <div className="text-4xl mb-5">{item.icon}</div>
-              <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-purple-300 transition-colors">{item.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{item.desc}</p>
+const PRODUCTS = [
+  {
+    title: "Motion Studio",
+    desc: "Interactive 3D robot control with real-time MuJoCo physics simulation right in your browser. Adjust every joint, test movements, and see results instantly.",
+    color: "#22d3ee",
+    mockContent: (
+      <div className="w-full h-full bg-[#0d1117] flex">
+        {/* Sidebar */}
+        <div className="w-[25%] bg-[#161b22] border-r border-white/5 p-3 flex flex-col gap-2">
+          <div className="text-[8px] font-mono text-cyan-400 mb-1">JOINT CONTROL</div>
+          {["Left Shoulder", "Right Shoulder", "Left Elbow", "Right Elbow", "Left Hip", "Right Hip", "Left Knee", "Right Knee"].map((j, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className="text-[6px] text-gray-500 w-[45%] truncate">{j}</span>
+              <div className="flex-1 h-[3px] bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${30 + Math.random() * 50}%`, background: "#22d3ee" }} />
+              </div>
             </div>
           ))}
+          <div className="mt-auto text-[6px] text-green-400 font-mono">● Connected</div>
+        </div>
+        {/* Main viewport */}
+        <div className="flex-1 flex items-center justify-center relative">
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, #22d3ee 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+          <img src="/robot-hero.png" alt="" className="h-[80%] object-contain opacity-90 drop-shadow-lg" draggable={false} />
+          <div className="absolute bottom-2 left-3 text-[6px] font-mono text-gray-500">MuJoCo v3.1 · 120 FPS · 29 DoF</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: "Skill Authoring",
+    desc: "Design complex robot behaviors with a visual keyframe editor and AI-assisted motion planning. Define poses, transitions, and timing with intuitive tools.",
+    color: "#a78bfa",
+    mockContent: (
+      <div className="w-full h-full bg-[#0d1117] flex flex-col">
+        {/* Top toolbar */}
+        <div className="h-[12%] bg-[#161b22] border-b border-white/5 flex items-center px-3 gap-2">
+          <div className="text-[7px] font-mono text-purple-400">SKILL EDITOR</div>
+          <div className="ml-auto flex gap-1">
+            {["Save", "Preview", "Export"].map((b) => (
+              <span key={b} className="text-[6px] px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300">{b}</span>
+            ))}
+          </div>
+        </div>
+        {/* Content */}
+        <div className="flex-1 flex">
+          {/* Keyframe list */}
+          <div className="w-[30%] border-r border-white/5 p-2">
+            <div className="text-[6px] text-gray-500 mb-1 font-mono">KEYFRAMES</div>
+            {["Stand", "Raise Arms", "Step Left", "Balance", "Wave", "Bow"].map((k, i) => (
+              <div key={i} className={`text-[6px] px-2 py-1 rounded mb-0.5 cursor-default ${i === 2 ? "bg-purple-500/15 text-purple-300 border border-purple-500/20" : "text-gray-400"}`}>
+                {String(i + 1).padStart(2, "0")} — {k}
+              </div>
+            ))}
+          </div>
+          {/* Timeline */}
+          <div className="flex-1 p-2">
+            <div className="text-[6px] text-gray-500 mb-1 font-mono">TIMELINE</div>
+            <div className="h-[60%] relative">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="absolute w-2 h-2 rounded-full border-2" style={{ left: `${i * 18 + 5}%`, top: `${20 + Math.sin(i) * 30}%`, borderColor: "#a78bfa", background: i === 2 ? "#a78bfa" : "transparent" }} />
+              ))}
+              <svg className="absolute inset-0 w-full h-full">
+                <path d="M 8% 35% Q 25% 10%, 42% 55% Q 58% 80%, 75% 25% Q 85% 10%, 95% 45%" fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.3" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: "RL Training",
+    desc: "Train reinforcement learning policies with PPO, monitor reward curves in real-time, and deploy production-ready ONNX models to physical robots.",
+    color: "#4ade80",
+    mockContent: (
+      <div className="w-full h-full bg-[#0d1117] flex flex-col p-3">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[7px] font-mono text-green-400">RL TRAINING DASHBOARD</div>
+          <div className="flex gap-1">
+            <span className="text-[6px] px-2 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-300">● Training</span>
+            <span className="text-[6px] text-gray-500">Episode 1,847,293</span>
+          </div>
+        </div>
+        {/* Metrics grid */}
+        <div className="grid grid-cols-4 gap-1 mb-2">
+          {[
+            { label: "Reward", value: "4,850.3", color: "#4ade80" },
+            { label: "Loss", value: "0.0023", color: "#f97316" },
+            { label: "LR", value: "3e-4", color: "#22d3ee" },
+            { label: "FPS", value: "48,200", color: "#a78bfa" },
+          ].map((m) => (
+            <div key={m.label} className="bg-white/[0.02] rounded p-1.5 border border-white/5">
+              <div className="text-[5px] text-gray-500">{m.label}</div>
+              <div className="text-[8px] font-bold font-mono" style={{ color: m.color }}>{m.value}</div>
+            </div>
+          ))}
+        </div>
+        {/* Chart area */}
+        <div className="flex-1 bg-white/[0.02] rounded border border-white/5 p-2 relative">
+          <div className="text-[5px] text-gray-500 mb-1">REWARD CURVE</div>
+          <svg className="w-full h-[80%]" viewBox="0 0 200 60">
+            <path d="M 0 55 Q 20 50, 40 45 Q 60 35, 80 30 Q 100 22, 120 18 Q 140 12, 160 8 Q 180 5, 200 3" fill="none" stroke="#4ade80" strokeWidth="1.5" />
+            <path d="M 0 55 Q 20 50, 40 45 Q 60 35, 80 30 Q 100 22, 120 18 Q 140 12, 160 8 Q 180 5, 200 3 L 200 60 L 0 60 Z" fill="url(#rewardFill)" />
+            <defs><linearGradient id="rewardFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4ade80" stopOpacity="0.2" /><stop offset="100%" stopColor="#4ade80" stopOpacity="0" /></linearGradient></defs>
+          </svg>
+        </div>
+      </div>
+    ),
+  },
+];
+
+export function LandingProduct() {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((s) => (s + 1) % PRODUCTS.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const product = PRODUCTS[activeSlide];
+
+  return (
+    <PageTransition direction="right">
+      <div className="flex h-full items-center justify-center px-6 lg:px-12 xl:px-20 pb-20">
+        <div className="max-w-[1100px] mx-auto w-full flex flex-col items-center">
+
+          {/* MacBook mockup */}
+          <div className="mbp-mockup-wrapper">
+            <div className="mbp-container">
+              <div className="mbp-display">
+                <div className="display-edge">
+                  <div className="bezel">
+                    <div className="display-camera" />
+                    <div className="display-frame">
+                      {/* Slide content */}
+                      <div className="w-full h-full relative">
+                        {PRODUCTS.map((p, i) => (
+                          <div
+                            key={i}
+                            className="absolute inset-0"
+                            style={{
+                              opacity: activeSlide === i ? 1 : 0,
+                              transition: "opacity 0.6s ease",
+                            }}
+                          >
+                            {p.mockContent}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="below-display">
+                      <div className="macbookpro" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mbp-keyboard">
+                <div className="front">
+                  <div className="opener-left" />
+                  <div className="opener-right" />
+                </div>
+                <div className="bottom-left" />
+                <div className="bottom-right" />
+              </div>
+            </div>
+          </div>
+
+          {/* Slide selector + description */}
+          <div className="flex items-center justify-center gap-8 mt-6">
+            {PRODUCTS.map((p, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveSlide(i)}
+                className="flex flex-col items-center gap-2 cursor-pointer transition-all group bg-transparent border-none"
+                style={{ opacity: activeSlide === i ? 1 : 0.4 }}
+              >
+                <div
+                  className="w-2.5 h-2.5 rounded-full transition-all"
+                  style={{
+                    backgroundColor: p.color,
+                    boxShadow: activeSlide === i ? `0 0 12px ${p.color}` : "none",
+                    transform: activeSlide === i ? "scale(1.3)" : "scale(1)",
+                  }}
+                />
+                <span
+                  className="text-sm font-semibold font-mono transition-all"
+                  style={{
+                    color: activeSlide === i ? p.color : "#6b7280",
+                    textShadow: activeSlide === i ? `0 0 10px ${p.color}40` : "none",
+                  }}
+                >
+                  {p.title}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Active description */}
+          <p
+            className="text-center text-gray-400 text-sm max-w-lg mt-3 transition-all"
+            style={{ opacity: 1 }}
+            key={activeSlide}
+          >
+            {product.desc}
+          </p>
         </div>
       </div>
     </PageTransition>
