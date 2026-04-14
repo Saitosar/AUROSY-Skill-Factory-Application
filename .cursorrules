@@ -1,0 +1,17 @@
+# AUROSY Skill Factory — Cursor Agent Rules
+# This file is read automatically by Cursor AI.
+# For GitHub Copilot agents, see .github/copilot-instructions.md
+
+## MANDATORY: Read Before Working
+- Read `.github/copilot-instructions.md` for full project instructions
+- Read `CONTRIBUTING.md` for development workflow
+
+## Quick Rules
+- ALWAYS `git pull origin main` before starting
+- ALWAYS `npm run build` in `web/frontend/` before deploying
+- NEVER edit files on production server directly
+- NEVER skip git commit/push before deploy
+- Use shared components from `src/components/`
+- Follow dark theme design system (see copilot-instructions.md)
+- Commit format: `Component: description`
+- Deploy: `./deploy.sh frontend` (checks git status automatically)
