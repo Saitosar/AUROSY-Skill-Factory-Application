@@ -1166,29 +1166,45 @@ export function LandingCompany() {
       icon: "◈",
       color: "#facc15",
       content: (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-white mb-1">Roadmap</h2>
-          <p className="text-gray-500 text-sm mb-2">Where we've been and where we're headed.</p>
-          {[
-            { year: "2025", status: "Completed", items: ["Physics simulation pipeline (MuJoCo)", "PPO/RL training framework", "Unitree G1 humanoid integration", "Balance & locomotion policy training", "ONNX export pipeline"], color: "#22d3ee" },
-            { year: "2026", status: "In Progress", items: ["Browser-based Skill Factory", "Visual keyframe editor", "One-click RL training", "User accounts & project management", "Marketplace beta launch"], color: "#a78bfa" },
-            { year: "2027", status: "Planned", items: ["Multi-robot support (arms, quadrupeds)", "Community skill marketplace", "Enterprise API & partnerships", "Real-hardware deployment tools", "Collaborative skill editing"], color: "#4ade80" },
-          ].map((m, i) => (
-            <div key={i} className="border border-white/[0.06] rounded-xl bg-white/[0.02] p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-lg font-bold" style={{ color: m.color }}>{m.year}</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide border" style={{ color: m.color, borderColor: `${m.color}30` }}>{m.status}</span>
-              </div>
-              <ul className="space-y-1.5">
-                {m.items.map((item, j) => (
-                  <li key={j} className="flex items-center gap-2 text-sm text-gray-400">
-                    <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ backgroundColor: m.color, opacity: 0.6 }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-6">Roadmap</h2>
+          {/* Horizontal timeline */}
+          <div className="relative">
+            {/* Horizontal line */}
+            <div className="absolute top-[22px] left-0 right-0 h-px bg-gradient-to-r from-cyan-500/40 via-purple-500/40 to-green-500/40" />
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { year: "2025", status: "Done", items: ["MuJoCo physics pipeline", "PPO/RL framework", "G1 humanoid integration", "ONNX export"], color: "#22d3ee", glow: "shadow-cyan-500/20" },
+                { year: "2026", status: "Now", items: ["Browser Skill Factory", "Visual keyframe editor", "One-click RL training", "Marketplace beta"], color: "#a78bfa", glow: "shadow-purple-500/20" },
+                { year: "2027", status: "Next", items: ["Multi-robot support", "Community marketplace", "Enterprise API", "Real-hardware deploy"], color: "#4ade80", glow: "shadow-green-500/20" },
+              ].map((m, i) => (
+                <div key={i} className="pt-0">
+                  {/* Dot on timeline */}
+                  <div className="flex justify-center mb-4">
+                    <div className="relative">
+                      <div className="w-11 h-11 rounded-full border-2 flex items-center justify-center bg-[#0B0F14] z-10 relative" style={{ borderColor: m.color }}>
+                        <span className="text-xs font-bold" style={{ color: m.color }}>{m.year}</span>
+                      </div>
+                      <div className="absolute inset-0 rounded-full blur-md opacity-40" style={{ backgroundColor: m.color }} />
+                    </div>
+                  </div>
+                  {/* Status badge */}
+                  <div className="text-center mb-3">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border" style={{ color: m.color, borderColor: `${m.color}25`, backgroundColor: `${m.color}08` }}>{m.status}</span>
+                  </div>
+                  {/* Items */}
+                  <div className="space-y-2">
+                    {m.items.map((item, j) => (
+                      <div key={j} className="flex items-center gap-2 text-gray-400 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color, opacity: 0.5 }} />
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       ),
     },
@@ -1197,31 +1213,35 @@ export function LandingCompany() {
       icon: "⬡",
       color: "#f472b6",
       content: (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-white mb-1">Built With</h2>
-          <p className="text-gray-500 text-sm mb-4">The technologies powering AUROSY from simulation to deployment.</p>
-          {[
-            { category: "Simulation & Physics", items: ["MuJoCo — physics engine for contact-rich simulation", "Isaac Sim — NVIDIA's robot simulation platform", "URDF/MJCF — robot description formats"], color: "#22d3ee" },
-            { category: "AI & Training", items: ["PyTorch — deep learning framework", "PPO — proximal policy optimization", "ONNX — universal model format for deployment", "OpenAI Gym — RL environment interface"], color: "#a78bfa" },
-            { category: "Robot Integration", items: ["Unitree SDK — G1 humanoid control", "ROS 2 — robot operating system middleware", "Real-time inference at 50Hz+"], color: "#4ade80" },
-            { category: "Platform", items: ["React + TypeScript — web interface", "FastAPI — backend API server", "PostgreSQL — data persistence", "Vite — build tooling"], color: "#facc15" },
-          ].map((g, i) => (
-            <div key={i}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: g.color }}>{g.category}</h3>
-              <div className="space-y-1.5 ml-1">
-                {g.items.map((item, j) => (
-                  <p key={j} className="text-gray-400 text-sm flex items-start gap-2">
-                    <span className="w-1 h-1 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: g.color, opacity: 0.5 }} />
-                    {item}
-                  </p>
-                ))}
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-6">Built With</h2>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { name: "MuJoCo", icon: "🔬", color: "#22d3ee" },
+              { name: "PyTorch", icon: "🔥", color: "#ee6b3b" },
+              { name: "ONNX", icon: "⬡", color: "#a78bfa" },
+              { name: "ROS 2", icon: "🤖", color: "#4ade80" },
+              { name: "Isaac Sim", icon: "🎮", color: "#76b900" },
+              { name: "Unitree SDK", icon: "🦿", color: "#facc15" },
+              { name: "OpenAI Gym", icon: "🏋️", color: "#f472b6" },
+              { name: "PPO", icon: "🧠", color: "#a78bfa" },
+              { name: "React", icon: "⚛️", color: "#61dafb" },
+              { name: "TypeScript", icon: "📘", color: "#3178c6" },
+              { name: "FastAPI", icon: "⚡", color: "#009688" },
+              { name: "PostgreSQL", icon: "🐘", color: "#336791" },
+              { name: "Vite", icon: "⚡", color: "#646cff" },
+              { name: "Tailwind", icon: "🎨", color: "#38bdf8" },
+              { name: "URDF", icon: "📐", color: "#f59e0b" },
+              { name: "MJCF", icon: "📄", color: "#22d3ee" },
+            ].map((t, i) => (
+              <div key={i} className="border border-white/[0.06] rounded-lg bg-white/[0.02] p-3 flex items-center gap-2.5 hover:bg-white/[0.05] transition-colors group cursor-default">
+                <span className="text-lg group-hover:scale-110 transition-transform">{t.icon}</span>
+                <span className="text-xs font-medium" style={{ color: t.color }}>{t.name}</span>
               </div>
-            </div>
-          ))}
-          <div className="pt-2 border-t border-white/[0.04]">
-            <p className="text-gray-600 text-xs">
-              Contact us — <span className="text-gray-400">hello@aurosy.io</span>
-            </p>
+            ))}
+          </div>
+          <div className="mt-6 pt-4 border-t border-white/[0.04] text-center">
+            <p className="text-gray-600 text-xs">Contact us — <span className="text-gray-400">hello@aurosy.io</span></p>
           </div>
         </div>
       ),
