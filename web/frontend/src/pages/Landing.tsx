@@ -277,7 +277,7 @@ function RobotVisual() {
       <img
         src="/robot-hero.png"
         alt="AUROSY Robot"
-        className="relative z-10 max-h-[75vh] w-auto drop-shadow-2xl object-contain"
+        className="relative z-10 max-h-[75vh] w-auto drop-shadow-2xl object-contain -translate-y-4"
         draggable={false}
       />
 
