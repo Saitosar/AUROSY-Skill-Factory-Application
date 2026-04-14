@@ -120,7 +120,7 @@ function AdminLogin() {
   );
 }
 
-/* ── Users Section ── */
+/* ── Clients Section ── */
 function UsersSection({ token, showToast }: { token: string; showToast: (m: string) => void }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,10 +201,10 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Total Users", value: stats.total, color: "from-purple-600/20 to-purple-800/10", border: "border-purple-500/20" },
+          { label: "Total Clients", value: stats.total, color: "from-purple-600/20 to-purple-800/10", border: "border-purple-500/20" },
           { label: "Active Trials", value: stats.trial, color: "from-purple-600/20 to-purple-800/10", border: "border-purple-500/20" },
-          { label: "Pro Users", value: stats.pro, color: "from-green-600/20 to-green-800/10", border: "border-green-500/20" },
-          { label: "Free Users", value: stats.free, color: "from-gray-600/10 to-gray-800/5", border: "border-gray-500/15" },
+          { label: "Pro Clients", value: stats.pro, color: "from-green-600/20 to-green-800/10", border: "border-green-500/20" },
+          { label: "Free Clients", value: stats.free, color: "from-gray-600/10 to-gray-800/5", border: "border-gray-500/15" },
         ].map((s) => (
           <div key={s.label} className={`bg-gradient-to-br ${s.color} border ${s.border} rounded-xl p-5`}>
             <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">{s.label}</span>
@@ -217,15 +217,15 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
       <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{Icons.search}</span>
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search users..."
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search clients..."
             className="w-full pl-10 pr-4 py-2.5 bg-[#161a22] border border-white/[0.08] rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors" />
         </div>
-        <span className="text-gray-500 text-sm">{filtered.length} users</span>
+        <span className="text-gray-500 text-sm">{filtered.length} clients</span>
       </div>
 
       {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-red-400 text-sm">{error}</div>}
 
-      {loading ? <div className="text-center py-20 text-gray-500">Loading users...</div> : (
+      {loading ? <div className="text-center py-20 text-gray-500">Loading clients...</div> : (
         <div className="bg-[#161a22] border border-white/[0.06] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -268,7 +268,7 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-500 text-sm">No users found</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-500 text-sm">No clients found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -763,7 +763,7 @@ export default function AdminPanel() {
   const displayName = user.name || user.email || "Admin";
 
   const sidebarItems: { id: AdminPage; label: string; icon: JSX.Element }[] = [
-    { id: "users", label: "Users", icon: Icons.users },
+    { id: "users", label: "Clients", icon: Icons.users },
     { id: "settings", label: "Settings", icon: Icons.settings },
   ];
 
