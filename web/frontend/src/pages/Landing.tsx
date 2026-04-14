@@ -203,12 +203,6 @@ function CodeStream() {
 
   return (
     <div className="absolute bottom-0 left-[calc(50%+80px)] -translate-x-1/2 w-[440px] h-[70px] z-[5] pointer-events-none overflow-hidden">
-      {/* Fade top edge */}
-      <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
-      {/* Fade bottom edge */}
-      <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-[#0B0F14] to-transparent z-10" />
-      {/* Fade left edge */}
-      <div className="absolute top-0 bottom-0 left-0 w-6 bg-gradient-to-r from-[#0B0F14] to-transparent z-10" />
 
       {/* Code container */}
       <div className="h-full flex items-start justify-start pt-1">
