@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* Design tokens — AUROSY Skill Factory (см. docs g1-control-ui/02_design_system) */
 :root {
   --bg-default: #0b0f14;

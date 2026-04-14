@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
 import Authoring from "./pages/Authoring";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Pipeline from "./pages/Pipeline";
 import PoseStudio from "./pages/PoseStudio";
 import ScenarioBuilder from "./pages/ScenarioBuilder";
@@ -11,15 +14,35 @@ import Jobs from "./pages/Jobs";
 import Packages from "./pages/Packages";
 import Settings from "./pages/Settings";
 
+/* ── Protected Route Wrapper ── */
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B0F14]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+}
+
 /* ── User Avatar + Dropdown ── */
 function UserMenu() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // TODO: replace with real user data from auth context
-  const user = { name: "User", avatarUrl: "" };
+  const displayName = user?.name || user?.email || "User";
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -31,12 +54,12 @@ function UserMenu() {
 
   return (
     <div className="user-menu" ref={ref}>
-      <button className="user-avatar-btn" onClick={() => setOpen((v) => !v)} title={user.name}>
-        {user.avatarUrl ? (
-          <img src={user.avatarUrl} alt={user.name} className="user-avatar-img" />
+      <button className="user-avatar-btn" onClick={() => setOpen((v) => !v)} title={displayName}>
+        {user?.avatar_url ? (
+          <img src={user.avatar_url} alt={displayName} className="user-avatar-img" />
         ) : (
           <span className="user-avatar-fallback">
-            {user.name.charAt(0).toUpperCase()}
+            {displayName.charAt(0).toUpperCase()}
           </span>
         )}
       </button>
@@ -45,14 +68,14 @@ function UserMenu() {
         <div className="user-dropdown">
           <div className="user-dropdown-header">
             <div className="user-dropdown-avatar">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="user-avatar-img" />
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={displayName} className="user-avatar-img" />
               ) : (
-                <span className="user-avatar-fallback">{user.name.charAt(0).toUpperCase()}</span>
+                <span className="user-avatar-fallback">{displayName.charAt(0).toUpperCase()}</span>
               )}
             </div>
             <div className="user-dropdown-info">
-              <span className="user-dropdown-name">{user.name}</span>
+              <span className="user-dropdown-name">{displayName}</span>
             </div>
           </div>
           <div className="user-dropdown-divider" />
@@ -65,7 +88,7 @@ function UserMenu() {
             {t("userMenu.settings", "Settings")}
           </button>
           <div className="user-dropdown-divider" />
-          <button className="user-dropdown-item user-dropdown-logout" onClick={() => { setOpen(false); /* TODO: logout logic */ }}>
+          <button className="user-dropdown-item user-dropdown-logout" onClick={() => { setOpen(false); logout(); navigate("/login"); }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             {t("userMenu.logout", "Log out")}
           </button>
@@ -77,6 +100,26 @@ function UserMenu() {
 
 export default function App() {
   const { t } = useTranslation();
+  const { user, loading } = useAuth();
+
+  // Show login/register pages without topbar
+  if (!loading && !user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B0F14]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="layout">
