@@ -183,15 +183,17 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
     } catch (e: any) { showToast(`Error: ${e.message}`); }
   };
 
-  const filtered = users.filter((u) =>
+  // Only show regular users (not admins/moderators)
+  const customers = users.filter((u) => u.role === "user");
+  const filtered = customers.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase()) || u.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const stats = {
-    total: users.length,
-    trial: users.filter((u) => u.plan === "trial").length,
-    pro: users.filter((u) => u.plan === "pro").length,
-    free: users.filter((u) => !u.plan || u.plan === "free").length,
+    total: customers.length,
+    trial: customers.filter((u) => u.plan === "trial").length,
+    pro: customers.filter((u) => u.plan === "pro").length,
+    free: customers.filter((u) => !u.plan || u.plan === "free").length,
   };
 
   return (
@@ -219,9 +221,6 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
             className="w-full pl-10 pr-4 py-2.5 bg-[#161a22] border border-white/[0.08] rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors" />
         </div>
         <span className="text-gray-500 text-sm">{filtered.length} users</span>
-        <button onClick={() => setShowCreate(true)} className="ml-auto flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer">
-          {Icons.plus} Create User
-        </button>
       </div>
 
       {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-red-400 text-sm">{error}</div>}
@@ -293,12 +292,6 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
         </Modal>
       )}
 
-      {/* Create User Modal */}
-      {showCreate && (
-        <Modal title="Create New User" onClose={() => setShowCreate(false)}>
-          <CreateUserForm token={token} onCreated={() => { setShowCreate(false); fetchUsers(); showToast("User created"); }} onError={(m) => showToast(`Error: ${m}`)} />
-        </Modal>
-      )}
     </>
   );
 }
@@ -333,6 +326,48 @@ function SettingsSection({ token, showToast }: { token: string; showToast: (m: s
       setNewPw(""); setConfirmPw("");
     } catch (e: any) { showToast(`Error: ${e.message}`); }
     finally { setChangingPw(false); }
+  };
+
+  // Fetch team members (admins/moderators)
+  const [team, setTeam] = useState<AdminUser[]>([]);
+  const [teamLoading, setTeamLoading] = useState(true);
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [pwTeamUser, setPwTeamUser] = useState<AdminUser | null>(null);
+  const [teamNewPw, setTeamNewPw] = useState("");
+
+  const fetchTeam = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl("/api/admin/users"), { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const all: AdminUser[] = await res.json();
+      setTeam(all.filter((u) => u.role === "admin" || u.role === "moderator"));
+    } catch { /* ignore */ }
+    finally { setTeamLoading(false); }
+  }, [token]);
+
+  useEffect(() => { fetchTeam(); }, [fetchTeam]);
+
+  const changeTeamPassword = async (userId: number) => {
+    if (teamNewPw.length < 6) { showToast("Password must be at least 6 characters"); return; }
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${userId}/password`), {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ new_password: teamNewPw }),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Failed"); }
+      showToast("Password changed");
+      setPwTeamUser(null); setTeamNewPw("");
+    } catch (e: any) { showToast(`Error: ${e.message}`); }
+  };
+
+  const deleteTeamUser = async (userId: number, email: string) => {
+    if (!confirm(`Remove team member ${email}?`)) return;
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${userId}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Failed"); }
+      showToast("Team member removed");
+      await fetchTeam();
+    } catch (e: any) { showToast(`Error: ${e.message}`); }
   };
 
   return (
@@ -372,6 +407,62 @@ function SettingsSection({ token, showToast }: { token: string; showToast: (m: s
           </button>
         </div>
       </div>
+
+      {/* Team Members */}
+      <div className="bg-[#161a22] border border-white/[0.06] rounded-xl p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-white font-semibold mb-1">Team Members</h3>
+            <p className="text-gray-500 text-sm">Manage admins and moderators</p>
+          </div>
+          <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer">
+            {Icons.plus} Add Member
+          </button>
+        </div>
+
+        {teamLoading ? <div className="text-gray-500 text-sm py-4">Loading...</div> : (
+          <div className="space-y-3">
+            {team.map((m) => (
+              <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-sm font-semibold">
+                    {(m.name || m.email).charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="text-white text-sm font-medium">{m.name || "—"}</div>
+                    <div className="text-gray-500 text-xs">{m.email}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {roleBadge(m.role)}
+                  <button onClick={() => setPwTeamUser(m)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer" title="Change password">{Icons.key}</button>
+                  {m.id !== user!.id && (
+                    <button onClick={() => deleteTeamUser(m.id, m.email)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer" title="Remove">{Icons.trash}</button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {team.length === 0 && <div className="text-gray-500 text-sm py-4 text-center">No team members yet</div>}
+          </div>
+        )}
+      </div>
+
+      {/* Create Team Member Modal */}
+      {showCreateTeam && (
+        <Modal title="Add Team Member" onClose={() => setShowCreateTeam(false)}>
+          <CreateUserForm token={token} onCreated={() => { setShowCreateTeam(false); fetchTeam(); showToast("Team member added"); }} onError={(m) => showToast(`Error: ${m}`)} />
+        </Modal>
+      )}
+
+      {/* Change Team Member Password Modal */}
+      {pwTeamUser && (
+        <Modal title={`Change password — ${pwTeamUser.email}`} onClose={() => { setPwTeamUser(null); setTeamNewPw(""); }}>
+          <div className="space-y-4">
+            <input type="password" value={teamNewPw} onChange={(e) => setTeamNewPw(e.target.value)} placeholder="New password (min 6 chars)" className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors" />
+            <button onClick={() => changeTeamPassword(pwTeamUser.id)} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors cursor-pointer">Change Password</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
