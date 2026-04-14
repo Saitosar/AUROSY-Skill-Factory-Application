@@ -144,16 +144,21 @@ export async function validateApi(
 }
 
 export async function getMidLevelActions() {
-  const r = await fetch(apiUrl("/api/mid-level/actions"));
-  if (!r.ok) throw new Error(await r.text());
-  return r.json() as Promise<{
-    actions: {
-      subdir: string;
-      action_name: string;
-      label: string;
-      keyframe_count: number;
-    }[];
-  }>;
+  try {
+    const r = await fetch(apiUrl("/api/mid-level/actions"));
+    if (r.status === 404) return { actions: [] };
+    if (!r.ok) throw new Error(await r.text());
+    return r.json() as Promise<{
+      actions: {
+        subdir: string;
+        action_name: string;
+        label: string;
+        keyframe_count: number;
+      }[];
+    }>;
+  } catch {
+    return { actions: [] };
+  }
 }
 
 export async function estimateScenario(nodes: unknown) {
@@ -619,10 +624,15 @@ export function platformPackageId(row: Record<string, unknown>): string {
 }
 
 export async function listPackages(): Promise<PlatformPackageRow[]> {
-  const r = await apiFetch("/api/packages");
-  if (!r.ok) throw new Error(await readApiErrorMessage(r));
-  const data = (await r.json()) as unknown;
-  return parsePackagesListPayload(data);
+  try {
+    const r = await apiFetch("/api/packages");
+    if (r.status === 404) return [];
+    if (!r.ok) throw new Error(await readApiErrorMessage(r));
+    const data = (await r.json()) as unknown;
+    return parsePackagesListPayload(data);
+  } catch {
+    return [];
+  }
 }
 
 export async function createPackageFromJob(jobId: string): Promise<{ package_id: string }> {
