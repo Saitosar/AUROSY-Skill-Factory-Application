@@ -111,15 +111,15 @@ function LandingNav({ activePath }: { activePath: string }) {
         </Link>
 
         {/* Nav links */}
-        <nav className="hidden md:flex items-center gap-1 bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-full px-2 py-1.5">
+        <nav className="hidden md:flex items-center gap-1">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activePath === item.path
-                  ? "bg-white/10 text-white font-medium"
-                  : "text-gray-400 hover:text-white hover:bg-white/[0.04]"
+                  ? "text-purple-400"
+                  : "text-gray-400 hover:text-purple-300"
               }`}
             >
               {item.label}
