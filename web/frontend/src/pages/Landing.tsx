@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import NotificationBell from "../components/NotificationBell";
 
 /* ── Animated page wrapper ── */
 function PageTransition({ children, direction }: { children: ReactNode; direction: "left" | "right" | "none" }) {
@@ -102,24 +103,6 @@ function LandingNav({ activePath }: { activePath: string }) {
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
-  const bellRef = useRef<HTMLDivElement>(null);
-
-  // Close bell on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
-    };
-    if (bellOpen) document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [bellOpen]);
-
-  // Welcome notifications for logged-in users
-  const welcomeNotifications = isRegularUser ? [
-    { id: 1, title: "Welcome to AUROSY!", desc: "Start by exploring the Motion Studio to create your first robot skill.", time: "now", icon: "🎉" },
-    { id: 2, title: "20-day trial active", desc: "You have full Pro access. Build, train, and export skills freely.", time: "now", icon: "⏱️" },
-    { id: 3, title: "New: Visual Keyframe Editor", desc: "Design robot motions frame-by-frame in your browser.", time: "1d ago", icon: "🆕" },
-  ] : [];
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,48 +179,8 @@ function LandingNav({ activePath }: { activePath: string }) {
 
         {/* Right side */}
         <div className="flex items-center gap-4">
-          {/* Notification bell */}
-          <div className="relative" ref={bellRef}>
-            <button
-              onClick={() => setBellOpen((v) => !v)}
-              className="text-gray-500 hover:text-white transition-colors relative cursor-pointer"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              {isRegularUser && welcomeNotifications.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-purple-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
-                  {welcomeNotifications.length}
-                </span>
-              )}
-            </button>
-            {bellOpen && (
-              <div className="absolute right-0 top-10 w-80 bg-[#1a1f2e] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-white/[0.06]">
-                  <span className="text-sm font-semibold text-white">Notifications</span>
-                </div>
-                <div className="max-h-72 overflow-y-auto">
-                  {!isRegularUser ? (
-                    <div className="px-4 py-8 text-center text-gray-500 text-sm">Sign in to see notifications</div>
-                  ) : (
-                    welcomeNotifications.map((n) => (
-                      <div key={n.id} className="px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                        <div className="flex items-start gap-3">
-                          <span className="text-base flex-shrink-0 mt-0.5">{n.icon}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm text-white font-medium">{n.title}</p>
-                            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{n.desc}</p>
-                            <p className="text-[10px] text-gray-600 mt-1">{n.time}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Notification bell (shared component) */}
+          <NotificationBell variant="landing" />
 
           {isRegularUser ? (
             /* Authenticated: avatar + name + dropdown */
