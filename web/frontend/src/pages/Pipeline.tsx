@@ -88,13 +88,6 @@ export default function Pipeline() {
     }
   }, [preView]);
 
-  const cliMissingInPath =
-    cli &&
-    meta?.sdk_python_root &&
-    (cli.preprocess === null || cli.playback === null || cli.train === null);
-
-  const dash = t("common.dash");
-
   useEffect(() => {
     setValidateErrors(null);
     setValidateOk(false);
@@ -269,100 +262,21 @@ export default function Pipeline() {
   }
 
   return (
-    <div>
+    <div className="pipeline-page">
       <PageHeader
         title={t("pipeline.title")}
-        description={
-          <Trans
-            i18nKey="pipeline.lead"
-            components={{
-              c1: <code>skill-foundry-preprocess</code>,
-              c2: <code>skill-foundry-playback</code>,
-              c3: <code>skill-foundry-train</code>,
-              link: <Link to="/authoring" />,
-            }}
-          />
-        }
+        description={t("pipeline.lead")}
       />
 
-      {cliMissingInPath && (
-        <ValidateBanner variant="warning">
-          <Trans
-            i18nKey="pipeline.cliWarn"
-            components={{
-              c1: <code>PATH</code>,
-              c2: <code>python -m …</code>,
-            }}
-          />
-        </ValidateBanner>
-      )}
-
       {!metaLoading && metaErr && (
-        <p className="muted err" role="status">
+        <ValidateBanner variant="warning">
           <Trans
             i18nKey="pipeline.metaLoadErr"
             values={{ error: metaErr }}
             components={{ c1: <code>/api/meta</code> }}
           />
-        </p>
+        </ValidateBanner>
       )}
-      {meta && meta.sdk_python_root && (
-        <p className="muted">
-          {t("pipeline.sdkLabel")} <code>{meta.sdk_python_root}</code>
-          <br />
-          {t("pipeline.mjcfDefault")}{" "}
-          {meta.mjcf_default ? <code>{meta.mjcf_default}</code> : t("pipeline.mjcfNotFound")}
-        </p>
-      )}
-
-      {cliErr && meta?.sdk_python_root && (
-        <p className="muted err" role="status">
-          <Trans
-            i18nKey="pipeline.cliDetectErr"
-            values={{ error: cliErr }}
-            components={{ c1: <code>/api/pipeline/detect-cli</code> }}
-          />
-        </p>
-      )}
-      {cli && !cliErr && meta?.sdk_python_root && (
-        <p className="muted">
-          <Trans
-            i18nKey="pipeline.cliInPath"
-            values={{
-              pre: cli.preprocess ?? dash,
-              pb: cli.playback ?? dash,
-              tr: cli.train ?? dash,
-            }}
-            components={{ c1: <code>python -m …</code> }}
-          />
-        </p>
-      )}
-
-      <div className="panel pipeline-ia-panel" role="region" aria-label={t("pipeline.iaRegionAria")}>
-        <p className="muted pipeline-ia-panel-text" style={{ marginTop: 0 }}>
-          <Trans
-            i18nKey="pipeline.trainPathsInfo"
-            components={{
-              strong: <strong />,
-              c1: <code>POST /api/pipeline/train</code>,
-              c2: <code>POST /api/jobs/train</code>,
-              lj: <Link to="/jobs" />,
-            }}
-          />
-        </p>
-      </div>
-
-      <div className="panel pipeline-platform-handoff" role="note">
-        <p className="muted" style={{ margin: 0 }}>
-          <Trans
-            i18nKey="pipeline.actionReadyHandoff"
-            components={{
-              c1: <code />,
-              lh: <Link to="/help#faq-skillfactory-heading" />,
-            }}
-          />
-        </p>
-      </div>
 
       <div className="pipeline-flow" role="navigation" aria-label={t("pipeline.flowAria")}>
         <div className="pipeline-flow-step">
@@ -400,10 +314,18 @@ export default function Pipeline() {
         </div>
       </div>
 
-      <div className="panel">
-        <h3 style={{ marginTop: 0 }}>{t("pipeline.phase0Title")}</h3>
-        <p className="muted">{t("pipeline.phase0Lead")}</p>
-        <div className="row" style={{ marginBottom: 10 }}>
+      <div className="panel pipeline-step-panel">
+        <div className="pipeline-step-header">
+          <span className="pipeline-step-number">1</span>
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 4 }}>{t("pipeline.phase0Title")}</h3>
+            <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>{t("pipeline.phase0Lead")}</p>
+          </div>
+        </div>
+
+        <textarea className="code" value={kfText} onChange={(e) => setKfText(e.target.value)} spellCheck={false} />
+
+        <div className="row" style={{ marginTop: 8, gap: 8 }}>
           <button
             type="button"
             className="primary"
@@ -424,26 +346,36 @@ export default function Pipeline() {
         <ValidateBanner variant="warning">{t("pipeline.validateWarn")}</ValidateBanner>
       )}
 
-      <div className="panel">
-        <h3 style={{ marginTop: 0 }}>{t("pipeline.preprocessTitle")}</h3>
-        <label className="muted">
-          frequency_hz{" "}
-          <input
-            type="number"
-            value={freq}
-            onChange={(e) => setFreq(Number(e.target.value))}
-          />
-        </label>
-        <label className="muted" style={{ display: "block", marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={skipMotionValidation}
-            onChange={(e) => setSkipMotionValidation(e.target.checked)}
-          />{" "}
-          {t("pipeline.validateMotionSkip")}
-        </label>
-        <textarea className="code" value={kfText} onChange={(e) => setKfText(e.target.value)} spellCheck={false} />
-        <div className="row" style={{ marginTop: 8 }}>
+      <div className="panel pipeline-step-panel">
+        <div className="pipeline-step-header">
+          <span className="pipeline-step-number">2</span>
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 4 }}>{t("pipeline.preprocessTitle")}</h3>
+            <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>{t("pipeline.preprocessLead")}</p>
+          </div>
+        </div>
+
+        <div className="pipeline-controls-row">
+          <label className="pipeline-field">
+            <span className="pipeline-field-label">{t("pipeline.freqLabel")}</span>
+            <input
+              type="number"
+              value={freq}
+              onChange={(e) => setFreq(Number(e.target.value))}
+              style={{ width: 100 }}
+            />
+          </label>
+          <label className="pipeline-field pipeline-field--checkbox">
+            <input
+              type="checkbox"
+              checked={skipMotionValidation}
+              onChange={(e) => setSkipMotionValidation(e.target.checked)}
+            />
+            <span>{t("pipeline.validateMotionSkip")}</span>
+          </label>
+        </div>
+
+        <div className="row" style={{ marginTop: 8, gap: 8 }}>
           <button
             type="button"
             className="primary"
@@ -516,25 +448,31 @@ export default function Pipeline() {
         )}
       </div>
 
-      <div className="panel">
-        <h3 style={{ marginTop: 0 }}>{t("pipeline.playbackTitle")}</h3>
-        <p className="muted">
-          <Trans
-            i18nKey="pipeline.playbackLead"
-            components={{ c1: <code>max_steps=200</code> }}
-          />
-        </p>
-        <label className="muted">
-          {t("pipeline.refPathLabel")}{" "}
+      <div className="panel pipeline-step-panel">
+        <div className="pipeline-step-header">
+          <span className="pipeline-step-number">3</span>
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 4 }}>{t("pipeline.playbackTitle")}</h3>
+            <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+              <Trans
+                i18nKey="pipeline.playbackLead"
+                components={{ c1: <code>max_steps=200</code> }}
+              />
+            </p>
+          </div>
+        </div>
+
+        <label className="pipeline-field">
+          <span className="pipeline-field-label">{t("pipeline.refPathLabel")}</span>
           <input
             type="text"
             style={{ width: "100%", maxWidth: 560 }}
             value={refPath}
             onChange={(e) => setRefPath(e.target.value)}
-            placeholder="/abs/path/to/reference_trajectory.json"
+            placeholder="/path/to/reference_trajectory.json"
           />
         </label>
-        <div className="row" style={{ marginTop: 8 }}>
+        <div className="row" style={{ marginTop: 8, gap: 8 }}>
           <button
             type="button"
             className="primary"
@@ -568,19 +506,25 @@ export default function Pipeline() {
         )}
       </div>
 
-      <div className="panel">
-        <h3 style={{ marginTop: 0 }}>{t("pipeline.trainTitle")}</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          <Trans
-            i18nKey="pipeline.trainSyncLead"
-            components={{
-              c1: <code>POST /api/pipeline/train</code>,
-              lj: <Link to="/jobs" />,
-            }}
-          />
-        </p>
-        <label className="muted">
-          {t("pipeline.trainRefLabel")}{" "}
+      <div className="panel pipeline-step-panel">
+        <div className="pipeline-step-header">
+          <span className="pipeline-step-number">4</span>
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 4 }}>{t("pipeline.trainTitle")}</h3>
+            <p className="muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+              <Trans
+                i18nKey="pipeline.trainSyncLead"
+                components={{
+                  c1: <code>POST /api/pipeline/train</code>,
+                  lj: <Link to="/jobs" />,
+                }}
+              />
+            </p>
+          </div>
+        </div>
+
+        <label className="pipeline-field">
+          <span className="pipeline-field-label">{t("pipeline.trainRefLabel")}</span>
           <input
             type="text"
             style={{ width: "100%", maxWidth: 560 }}
@@ -588,8 +532,8 @@ export default function Pipeline() {
             onChange={(e) => setRefPath(e.target.value)}
           />
         </label>
-        <label className="muted" style={{ display: "block", marginTop: 8 }}>
-          {t("pipeline.trainConfigLabel")}{" "}
+        <label className="pipeline-field">
+          <span className="pipeline-field-label">{t("pipeline.trainConfigLabel")}</span>
           <input
             type="text"
             style={{ width: "100%", maxWidth: 560 }}

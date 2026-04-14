@@ -991,6 +991,62 @@ button.validation-error-copy-path {
   line-height: 1.5;
 }
 
+.pipeline-page {
+  max-width: 860px;
+}
+
+.pipeline-step-panel {
+  margin-bottom: 16px;
+}
+
+.pipeline-step-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.pipeline-step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.pipeline-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.pipeline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pipeline-field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.pipeline-field-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .pipeline-preprocess-cta {
   margin-top: 14px;
   padding-top: 12px;
