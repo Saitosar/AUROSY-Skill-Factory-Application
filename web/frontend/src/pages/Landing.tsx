@@ -188,112 +188,13 @@ function RobotVisual() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px]" />
       <div className="absolute top-1/3 right-1/4 w-[200px] h-[200px] bg-cyan-500/10 rounded-full blur-[80px]" />
 
-      {/* Robot SVG illustration */}
-      <div className="relative z-10">
-        <svg width="420" height="480" viewBox="0 0 420 480" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl">
-          {/* Head */}
-          <ellipse cx="210" cy="120" rx="85" ry="95" fill="url(#headGrad)" stroke="url(#strokeGrad)" strokeWidth="1.5" />
-          <ellipse cx="210" cy="115" rx="70" ry="78" fill="url(#headInner)" opacity="0.6" />
-
-          {/* Eyes */}
-          <circle cx="180" cy="105" r="14" fill="#0B0F14" />
-          <circle cx="240" cy="105" r="14" fill="#0B0F14" />
-          <circle cx="180" cy="105" r="8" fill="url(#eyeGrad)">
-            <animate attributeName="r" values="8;10;8" dur="3s" repeatCount="indefinite" />
-          </circle>
-          <circle cx="240" cy="105" r="8" fill="url(#eyeGrad)">
-            <animate attributeName="r" values="8;10;8" dur="3s" repeatCount="indefinite" begin="0.5s" />
-          </circle>
-          <circle cx="180" cy="103" r="3" fill="white" opacity="0.8" />
-          <circle cx="240" cy="103" r="3" fill="white" opacity="0.8" />
-
-          {/* Visor line */}
-          <path d="M155 105 Q210 85 265 105" stroke="url(#strokeGrad)" strokeWidth="1" fill="none" opacity="0.3" />
-
-          {/* Neck */}
-          <rect x="195" y="210" width="30" height="25" rx="4" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-
-          {/* Torso */}
-          <path d="M140 235 L280 235 L270 380 L150 380 Z" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="1" rx="10" />
-          {/* Chest plate */}
-          <path d="M170 260 L250 260 L245 340 L175 340 Z" fill="url(#chestGrad)" stroke="url(#strokeGrad)" strokeWidth="0.5" opacity="0.5" />
-          {/* Arc reactor */}
-          <circle cx="210" cy="295" r="18" fill="url(#reactorGrad)" opacity="0.8">
-            <animate attributeName="r" values="18;20;18" dur="2s" repeatCount="indefinite" />
-          </circle>
-          <circle cx="210" cy="295" r="10" fill="url(#reactorInner)" />
-          <circle cx="210" cy="295" r="5" fill="#a855f7" opacity="0.9">
-            <animate attributeName="opacity" values="0.9;0.5;0.9" dur="1.5s" repeatCount="indefinite" />
-          </circle>
-
-          {/* Left arm */}
-          <rect x="100" y="240" width="35" height="80" rx="12" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-          <rect x="105" y="325" width="25" height="60" rx="8" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-          <circle cx="117" cy="280" r="6" fill="url(#jointGrad)">
-            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
-          </circle>
-
-          {/* Right arm */}
-          <rect x="285" y="240" width="35" height="80" rx="12" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-          <rect x="290" y="325" width="25" height="60" rx="8" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-          <circle cx="303" cy="280" r="6" fill="url(#jointGrad)">
-            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" begin="0.7s" />
-          </circle>
-
-          {/* Left leg */}
-          <rect x="160" y="380" width="35" height="70" rx="10" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-          <rect x="155" y="450" width="45" height="18" rx="8" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-
-          {/* Right leg */}
-          <rect x="225" y="380" width="35" height="70" rx="10" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-          <rect x="220" y="450" width="45" height="18" rx="8" fill="url(#bodyGrad)" stroke="url(#strokeGrad)" strokeWidth="0.8" />
-
-          {/* Joint dots */}
-          <circle cx="177" cy="385" r="5" fill="url(#jointGrad)" opacity="0.7" />
-          <circle cx="243" cy="385" r="5" fill="url(#jointGrad)" opacity="0.7" />
-
-          {/* Gradients */}
-          <defs>
-            <linearGradient id="headGrad" x1="125" y1="25" x2="295" y2="215">
-              <stop offset="0%" stopColor="#2a2a3e" />
-              <stop offset="100%" stopColor="#1a1a2e" />
-            </linearGradient>
-            <linearGradient id="headInner" x1="140" y1="37" x2="280" y2="193">
-              <stop offset="0%" stopColor="#3a3a50" />
-              <stop offset="100%" stopColor="#1a1a2e" />
-            </linearGradient>
-            <radialGradient id="eyeGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c084fc" />
-              <stop offset="100%" stopColor="#7c3aed" />
-            </radialGradient>
-            <linearGradient id="strokeGrad" x1="0" y1="0" x2="420" y2="480">
-              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.6" />
-              <stop offset="50%" stopColor="#a855f7" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.6" />
-            </linearGradient>
-            <linearGradient id="bodyGrad" x1="100" y1="235" x2="320" y2="470">
-              <stop offset="0%" stopColor="#252540" />
-              <stop offset="100%" stopColor="#18182e" />
-            </linearGradient>
-            <linearGradient id="chestGrad" x1="170" y1="260" x2="250" y2="340">
-              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#a855f7" stopOpacity="0.05" />
-            </linearGradient>
-            <radialGradient id="reactorGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.1" />
-            </radialGradient>
-            <radialGradient id="reactorInner" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c084fc" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.2" />
-            </radialGradient>
-            <radialGradient id="jointGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#a855f7" />
-              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.5" />
-            </radialGradient>
-          </defs>
-        </svg>
-      </div>
+      {/* Robot SVG */}
+      <img
+        src="/robot-hero.svg"
+        alt="AUROSY Robot"
+        className="relative z-10 max-h-[75vh] w-auto drop-shadow-2xl object-contain"
+        draggable={false}
+      />
 
       {/* Floating badges */}
       <FloatingBadge className="top-[15%] right-[5%] animate-float-slow">
