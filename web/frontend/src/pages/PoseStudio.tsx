@@ -81,6 +81,8 @@ export default function PoseStudio() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
   const [draftName, setDraftName] = useState("");
   const [activeDanceName, setActiveDanceName] = useState<string | null>(null);
+  const [panelTab, setPanelTab] = useState<"joints" | "timeline" | "capture">("joints");
+  const [panelTab, setPanelTab] = useState<"joints" | "timeline" | "capture">("joints");
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
@@ -628,186 +630,229 @@ export default function PoseStudio() {
 
         {/* ── Right: Control Panel (overlay) ── */}
         <div className="ps-control-panel">
-          <div className="ps-card ps-kf-bar">
-            <label className="ps-toggle ps-toggle--compact">
-              <input
-                type="checkbox"
-                checked={liveModeEnabled}
-                disabled={!retargetingEnabled}
-                onChange={(e) => setLiveModeEnabled(e.target.checked)}
-              />
-              <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
-              <span className="tag-secondary">{t("pose.liveModeToggle")}</span>
-            </label>
-            {!retargetingEnabled && <span className="muted">{t("pose.motionCaptureUnavailable")}</span>}
-          </div>
-          {telemetryMode === "dds" && (
-            <div className="ps-card ps-error-panel">
-              <p className="warn" style={{ margin: 0 }}>
-                {t("pose.ddsModeWarning")}
-              </p>
-            </div>
-          )}
-          <MotionCapturePanel
-            enabled={retargetingEnabled && liveModeEnabled}
-            onLiveTrackChange={setLiveTrackEnabled}
-            onJointAnglesUpdate={onLiveTrackAngles}
-            onLandmarksArtifactUploaded={setLandmarksArtifact}
-            onLocalRecordingAvailable={buildNlaFromLocalRecording}
-          />
-          <MotionPipelinePanel
-            apiMeta={apiMeta}
-            landmarksArtifact={landmarksArtifact}
-            onLandmarksArtifactChange={setLandmarksArtifact}
-          />
-
-          {/* Keyframes compact toolbar */}
-          <div className="ps-kf-bar">
-            <span className="ps-kf-label">
-              KF
-              {savedWasmPoses.length > 0 && (
-                <span className="ps-badge">{savedWasmPoses.length}/{MAX_SAVED_WASM_POSES}</span>
-              )}
-            </span>
-            <input
-              type="text"
-              className="ps-kf-input"
-              placeholder={t("pose.saveDraftPrompt")}
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
-              disabled={wasmMotionPlaying || liveTrackEnabled}
-            />
+          {/* ── Tab bar ── */}
+          <div className="ps-panel-tabs">
             <button
               type="button"
-              className="ps-kf-icon-btn ps-kf-icon-btn--save"
-              disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying || liveTrackEnabled}
-              onClick={() => void saveWasmDraft()}
-              title={t("pose.saveDraft")}
+              className={`ps-panel-tab${panelTab === "joints" ? " ps-panel-tab--active" : ""}`}
+              onClick={() => setPanelTab("joints")}
+              title="Joints"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="16" x2="8" y2="22"/><line x1="12" y1="16" x2="16" y2="22"/></svg>
+              <span>Joints</span>
             </button>
             <button
               type="button"
-              className="ps-kf-icon-btn ps-kf-icon-btn--download"
-              disabled={!keyframesListForExport?.length || wasmMotionPlaying || liveTrackEnabled}
-              onClick={downloadSdkPoseJson}
-              title={t("pose.downloadSdkPoseJson")}
+              className={`ps-panel-tab${panelTab === "timeline" ? " ps-panel-tab--active" : ""}`}
+              onClick={() => setPanelTab("timeline")}
+              title="Timeline"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Timeline</span>
             </button>
             <button
               type="button"
-              className="ps-kf-icon-btn ps-kf-icon-btn--danger"
-              disabled={savedWasmPoses.length === 0 || wasmMotionPlaying || liveTrackEnabled}
-              onClick={clearWasmSavedPoses}
-              title={t("pose.clearSavedPoses")}
+              className={`ps-panel-tab${panelTab === "capture" ? " ps-panel-tab--active" : ""}`}
+              onClick={() => setPanelTab("capture")}
+              title="Capture"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Capture</span>
             </button>
           </div>
 
-          <PoseTimeline
-            timeline={nlaTimeline}
-            currentTimeSec={timelineTimeSec}
-            maxTimeSec={Math.max(timelineEndSec, 2)}
-            disabled={wasmMotionPlaying || liveTrackEnabled}
-            selectedTrackId={selectedTrackId}
-            selectedJoint={selectedTrackJoint}
-            onCurrentTimeChange={setTimelineTimeSec}
-            onSelectTrack={(trackId) => setSelectedTrackId(trackId as NlaTrackId)}
-            onSelectJoint={setSelectedTrackJoint}
-            onAddKeyframe={addTimelineKeyframe}
-            onDeleteKeyframe={deleteTimelineKeyframe}
-            onMoveKeyframe={moveTimelineKeyframe}
-            onUpdateBezierHandle={updateTimelineBezierHandle}
-            onSetTrackWeight={setTrackWeight}
-            onToggleTrack={toggleTrackEnabled}
-            onSmoothJoint={smoothTimelineJoint}
-          />
-
-          {/* Joints card */}
-          <div className="ps-card ps-card--joints">
-            <div className="ps-card-header">
-              <h3 className="ps-card-title">{t("pose.jointsPanelTitle")}</h3>
-              <div className="ps-joint-controls">
-                <label className="ps-toggle ps-toggle--compact">
-                  <input type="checkbox" checked={expert} onChange={(e) => setExpert(e.target.checked)} />
-                  <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
-                  <span className="tag-secondary">{t("telemetry.expertLabel")}</span>
-                </label>
-                {filterGroupName != null && (
-                  <button
-                    type="button"
-                    className="ps-btn ps-btn--ghost ps-btn--sm"
-                    onClick={() => setFilterGroupName(null)}
-                  >
-                    {t("pose.allGroups")}
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="ps-card-body ps-joints-scroll">
-              {!wasmReady && !wasmViewerError && <p className="muted">{t("pose.wasmSlidersHint")}</p>}
-              {filteredGroups.map((g) => {
-                const isCollapsed = collapsedGroups.has(g.name);
-                return (
-                  <div key={g.name} className="ps-joint-group">
+          {/* ── Joints Tab ── */}
+          {panelTab === "joints" && (
+            <div className="ps-card ps-card--joints" style={{ flex: 1, minHeight: 0 }}>
+              <div className="ps-card-header">
+                <h3 className="ps-card-title">{t("pose.jointsPanelTitle")}</h3>
+                <div className="ps-joint-controls">
+                  <label className="ps-toggle ps-toggle--compact">
+                    <input type="checkbox" checked={expert} onChange={(e) => setExpert(e.target.checked)} />
+                    <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
+                    <span className="tag-secondary">{t("telemetry.expertLabel")}</span>
+                  </label>
+                  {filterGroupName != null && (
                     <button
                       type="button"
-                      className="ps-joint-group-header"
-                      onClick={() => toggleGroupCollapse(g.name)}
-                      aria-expanded={!isCollapsed}
+                      className="ps-btn ps-btn--ghost ps-btn--sm"
+                      onClick={() => setFilterGroupName(null)}
                     >
-                      <svg
-                        className={`ps-chevron${isCollapsed ? "" : " ps-chevron--open"}`}
-                        width="12" height="12" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" strokeWidth="2.5"
-                      >
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                      <span>{g.name}</span>
-                      <span className="ps-joint-count">{g.indices.length}</span>
+                      {t("pose.allGroups")}
                     </button>
-                    {!isCollapsed && (
-                      <div className="ps-joint-group-body">
-                        {g.indices.map((i) => {
-                          const key = String(i);
-                          const skillKey = effectiveNames[key] ?? dash;
-                          const displayLabel = getJointLabel(skillKey, t);
-                          const r = wasmRanges[skillKey];
-                          const lo = r?.min ?? JOINT_SLIDER_RAD_MIN;
-                          const hi = r?.max ?? JOINT_SLIDER_RAD_MAX;
-                          const v = wasmJointRad[skillKey] ?? 0;
-                          return (
-                            <JointWasmSliderRow
-                              key={i}
-                              jointIndex={i}
-                              label={displayLabel}
-                              expertCanonicalLabel={skillKey}
-                              skillKey={skillKey}
-                              valueRad={v}
-                              minRad={lo}
-                              maxRad={hi}
-                              unit="deg"
-                              expert={expert}
-                              isSelected={selectedJointIndex === i}
-                              onActivate={() => {
-                                setSelectedJointIndex(i);
-                                setFilterGroupName(g.name);
-                              }}
-                              onChangeRad={onWasmJointChange}
-                              numberInputAriaLabel={t("pose.commandValueAria", { label: displayLabel })}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  )}
+                </div>
+              </div>
+              <div className="ps-card-body ps-joints-scroll">
+                {!wasmReady && !wasmViewerError && <p className="muted">{t("pose.wasmSlidersHint")}</p>}
+                {filteredGroups.map((g) => {
+                  const isCollapsed = collapsedGroups.has(g.name);
+                  return (
+                    <div key={g.name} className="ps-joint-group">
+                      <button
+                        type="button"
+                        className="ps-joint-group-header"
+                        onClick={() => toggleGroupCollapse(g.name)}
+                        aria-expanded={!isCollapsed}
+                      >
+                        <svg
+                          className={`ps-chevron${isCollapsed ? "" : " ps-chevron--open"}`}
+                          width="12" height="12" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth="2.5"
+                        >
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                        <span>{g.name}</span>
+                        <span className="ps-joint-count">{g.indices.length}</span>
+                      </button>
+                      {!isCollapsed && (
+                        <div className="ps-joint-group-body">
+                          {g.indices.map((i) => {
+                            const key = String(i);
+                            const skillKey = effectiveNames[key] ?? dash;
+                            const displayLabel = getJointLabel(skillKey, t);
+                            const r = wasmRanges[skillKey];
+                            const lo = r?.min ?? JOINT_SLIDER_RAD_MIN;
+                            const hi = r?.max ?? JOINT_SLIDER_RAD_MAX;
+                            const v = wasmJointRad[skillKey] ?? 0;
+                            return (
+                              <JointWasmSliderRow
+                                key={i}
+                                jointIndex={i}
+                                label={displayLabel}
+                                expertCanonicalLabel={skillKey}
+                                skillKey={skillKey}
+                                valueRad={v}
+                                minRad={lo}
+                                maxRad={hi}
+                                unit="deg"
+                                expert={expert}
+                                isSelected={selectedJointIndex === i}
+                                onActivate={() => {
+                                  setSelectedJointIndex(i);
+                                  setFilterGroupName(g.name);
+                                }}
+                                onChangeRad={onWasmJointChange}
+                                numberInputAriaLabel={t("pose.commandValueAria", { label: displayLabel })}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* ── Timeline Tab ── */}
+          {panelTab === "timeline" && (
+            <>
+              {/* Keyframes compact toolbar */}
+              <div className="ps-kf-bar">
+                <span className="ps-kf-label">
+                  KF
+                  {savedWasmPoses.length > 0 && (
+                    <span className="ps-badge">{savedWasmPoses.length}/{MAX_SAVED_WASM_POSES}</span>
+                  )}
+                </span>
+                <input
+                  type="text"
+                  className="ps-kf-input"
+                  placeholder={t("pose.saveDraftPrompt")}
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void saveWasmDraft(); }}
+                  disabled={wasmMotionPlaying || liveTrackEnabled}
+                />
+                <button
+                  type="button"
+                  className="ps-kf-icon-btn ps-kf-icon-btn--save"
+                  disabled={!mergedForExport || !draftName.trim() || wasmMotionPlaying || liveTrackEnabled}
+                  onClick={() => void saveWasmDraft()}
+                  title={t("pose.saveDraft")}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                </button>
+                <button
+                  type="button"
+                  className="ps-kf-icon-btn ps-kf-icon-btn--download"
+                  disabled={!keyframesListForExport?.length || wasmMotionPlaying || liveTrackEnabled}
+                  onClick={downloadSdkPoseJson}
+                  title={t("pose.downloadSdkPoseJson")}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                </button>
+                <button
+                  type="button"
+                  className="ps-kf-icon-btn ps-kf-icon-btn--danger"
+                  disabled={savedWasmPoses.length === 0 || wasmMotionPlaying || liveTrackEnabled}
+                  onClick={clearWasmSavedPoses}
+                  title={t("pose.clearSavedPoses")}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </button>
+              </div>
+
+              <PoseTimeline
+                timeline={nlaTimeline}
+                currentTimeSec={timelineTimeSec}
+                maxTimeSec={Math.max(timelineEndSec, 2)}
+                disabled={wasmMotionPlaying || liveTrackEnabled}
+                selectedTrackId={selectedTrackId}
+                selectedJoint={selectedTrackJoint}
+                onCurrentTimeChange={setTimelineTimeSec}
+                onSelectTrack={(trackId) => setSelectedTrackId(trackId as NlaTrackId)}
+                onSelectJoint={setSelectedTrackJoint}
+                onAddKeyframe={addTimelineKeyframe}
+                onDeleteKeyframe={deleteTimelineKeyframe}
+                onMoveKeyframe={moveTimelineKeyframe}
+                onUpdateBezierHandle={updateTimelineBezierHandle}
+                onSetTrackWeight={setTrackWeight}
+                onToggleTrack={toggleTrackEnabled}
+                onSmoothJoint={smoothTimelineJoint}
+              />
+            </>
+          )}
+
+          {/* ── Capture Tab ── */}
+          {panelTab === "capture" && (
+            <>
+              <div className="ps-card ps-kf-bar">
+                <label className="ps-toggle ps-toggle--compact">
+                  <input
+                    type="checkbox"
+                    checked={liveModeEnabled}
+                    disabled={!retargetingEnabled}
+                    onChange={(e) => setLiveModeEnabled(e.target.checked)}
+                  />
+                  <span className="ps-toggle-track"><span className="ps-toggle-thumb" /></span>
+                  <span className="tag-secondary">{t("pose.liveModeToggle")}</span>
+                </label>
+                {!retargetingEnabled && <span className="muted">{t("pose.motionCaptureUnavailable")}</span>}
+              </div>
+              {telemetryMode === "dds" && (
+                <div className="ps-card ps-error-panel">
+                  <p className="warn" style={{ margin: 0 }}>
+                    {t("pose.ddsModeWarning")}
+                  </p>
+                </div>
+              )}
+              <MotionCapturePanel
+                enabled={retargetingEnabled && liveModeEnabled}
+                onLiveTrackChange={setLiveTrackEnabled}
+                onJointAnglesUpdate={onLiveTrackAngles}
+                onLandmarksArtifactUploaded={setLandmarksArtifact}
+                onLocalRecordingAvailable={buildNlaFromLocalRecording}
+              />
+              <MotionPipelinePanel
+                apiMeta={apiMeta}
+                landmarksArtifact={landmarksArtifact}
+                onLandmarksArtifactChange={setLandmarksArtifact}
+              />
+            </>
+          )}
 
           {/* Errors */}
           {(wasmViewerError || loadError) && (
