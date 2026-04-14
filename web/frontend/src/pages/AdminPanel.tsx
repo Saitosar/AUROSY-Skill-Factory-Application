@@ -477,6 +477,164 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+/* ── Notification Sound ── */
+function playNotificationSound() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    // Two-tone chime
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch { /* ignore if audio not available */ }
+}
+
+interface Notification {
+  id: number;
+  email: string;
+  name: string;
+  plan: string;
+  created_at: string;
+  read: boolean;
+}
+
+/* ── Notification Bell ── */
+function NotificationBell({ token }: { token: string }) {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [open, setOpen] = useState(false);
+  const [knownIds, setKnownIds] = useState<Set<number>>(new Set());
+  const bellRef = useRef<HTMLDivElement>(null);
+  const initialLoad = useRef(true);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Poll for new users
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/admin/users"), { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const users: AdminUser[] = await res.json();
+        const trialUsers = users.filter((u) => u.plan === "trial");
+
+        if (initialLoad.current) {
+          // First load — just record known IDs, no sound
+          setKnownIds(new Set(trialUsers.map((u) => u.id)));
+          initialLoad.current = false;
+          return;
+        }
+
+        const currentIds = new Set(trialUsers.map((u) => u.id));
+        const newUsers = trialUsers.filter((u) => !knownIds.has(u.id));
+
+        if (newUsers.length > 0) {
+          playNotificationSound();
+          setNotifications((prev) => [
+            ...newUsers.map((u) => ({
+              id: u.id, email: u.email, name: u.name, plan: u.plan,
+              created_at: u.created_at, read: false,
+            })),
+            ...prev,
+          ].slice(0, 50));
+          setKnownIds(currentIds);
+        }
+      } catch { /* ignore */ }
+    };
+
+    poll();
+    const interval = setInterval(poll, 15000); // every 15 seconds
+    return () => clearInterval(interval);
+  }, [token, knownIds]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const clearAll = () => {
+    setNotifications([]);
+    setOpen(false);
+  };
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  return (
+    <div className="relative" ref={bellRef}>
+      <button
+        onClick={() => { setOpen((v) => !v); if (!open) markAllRead(); }}
+        className="relative p-2 rounded-xl text-gray-400 hover:text-purple-300 hover:bg-white/[0.04] transition-all cursor-pointer"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-purple-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center animate-pulse">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-12 w-80 bg-[#1a1f2e] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <span className="text-sm font-semibold text-white">Notifications</span>
+            {notifications.length > 0 && (
+              <button onClick={clearAll} className="text-xs text-gray-500 hover:text-gray-300 transition-colors cursor-pointer">Clear all</button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="px-4 py-8 text-center text-gray-500 text-sm">No notifications yet</div>
+            ) : (
+              notifications.map((n, i) => (
+                <div key={`${n.id}-${i}`} className={`px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${!n.read ? "bg-purple-500/[0.05]" : ""}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-xs font-semibold flex-shrink-0 mt-0.5">
+                      {(n.name || n.email).charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-white">
+                        <span className="font-medium">{n.name || n.email}</span>
+                        <span className="text-gray-400"> registered with </span>
+                        <span className="text-purple-300 font-medium">trial</span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">{n.email} · {timeAgo(n.created_at)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Admin Panel ── */
 type AdminPage = "users" | "settings";
 
@@ -561,6 +719,8 @@ export default function AdminPanel() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/[0.06] bg-[#0B0F14]/60 backdrop-blur-xl">
           <h1 className="text-lg font-semibold text-white capitalize">{page}</h1>
+          <div className="flex items-center gap-2">
+          <NotificationBell token={token!} />
           <div className="relative" ref={dropdownRef}>
             <button onClick={() => setDropdownOpen((v) => !v)} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-all cursor-pointer">
               <div className="w-8 h-8 rounded-full bg-purple-600/25 border border-purple-500/30 flex items-center justify-center text-purple-300 text-sm font-semibold">
@@ -583,6 +743,7 @@ export default function AdminPanel() {
                 </button>
               </div>
             )}
+          </div>
           </div>
         </header>
 
