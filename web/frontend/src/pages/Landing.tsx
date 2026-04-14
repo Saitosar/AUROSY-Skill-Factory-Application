@@ -46,7 +46,27 @@ function UserButton() {
     return (
       <Link
         to="/pricing"
-        className="text-sm px-5 py-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium hover:from-purple-500 hover:to-purple-400 transition-all"
+        className="group text-sm font-bold tracking-tight transition-all"
+        style={{
+          backgroundImage: "linear-gradient(90deg, #a78bfa, #a78bfa)",
+          backgroundSize: "100% 100%",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          transition: "all 0.4s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+          e.currentTarget.style.backgroundSize = "200% 100%";
+          e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+          e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(167,139,250,0.5))";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #a78bfa, #a78bfa)";
+          e.currentTarget.style.backgroundSize = "100% 100%";
+          e.currentTarget.style.animation = "none";
+          e.currentTarget.style.filter = "none";
+        }}
       >
         Start Building
       </Link>
