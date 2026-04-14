@@ -121,9 +121,9 @@ export default function AuthForm({
         }}
       />
 
-      <div className="p-8">
+      <div className={tab === "register" ? "p-6 sm:p-8" : "p-8"}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h3
             className="text-xl font-bold"
             style={{
@@ -156,7 +156,7 @@ export default function AuthForm({
 
         {/* Tabs */}
         {showTabs && (
-          <div className="flex gap-1 mb-6 p-1 bg-white/[0.04] rounded-xl">
+          <div className="flex gap-1 mb-4 p-1 bg-white/[0.04] rounded-xl">
             <button
               onClick={() => switchTab("login")}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
@@ -180,41 +180,37 @@ export default function AuthForm({
           </div>
         )}
 
-        {/* Trial banner */}
+        {/* Trial banner + Google — side by side on register */}
         {tab === "register" && (
-          <div
-            className="mb-4 px-4 py-3 rounded-xl border"
-            style={{
-              background: "rgba(167,139,250,0.06)",
-              borderColor: "rgba(167,139,250,0.2)",
-            }}
-          >
-            <p
-              className="text-sm font-medium flex items-center gap-2"
-              style={{ color: "#a78bfa" }}
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div
+              className="flex-1 px-4 py-3 rounded-xl border"
+              style={{
+                background: "rgba(167,139,250,0.06)",
+                borderColor: "rgba(167,139,250,0.2)",
+              }}
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+              <p
+                className="text-sm font-medium flex items-center gap-2"
+                style={{ color: "#a78bfa" }}
               >
-                <path d="M12 8v4l3 3" />
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-              20-day free trial included
-            </p>
-            <p className="text-gray-400 text-xs mt-1">
-              Full Pro access. No credit card required.
-            </p>
-          </div>
-        )}
-
-        {/* Google placeholder */}
-        {tab === "register" && (
-          <>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 8v4l3 3" />
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                20-day free trial
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Full Pro access. No card required.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() =>
@@ -222,7 +218,7 @@ export default function AuthForm({
                   "Google sign-in coming soon. Please use email registration."
                 )
               }
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-white font-medium transition-all cursor-pointer mb-4"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-white text-sm font-medium transition-all cursor-pointer"
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path
@@ -242,16 +238,18 @@ export default function AuthForm({
                   fill="#EA4335"
                 />
               </svg>
-              Continue with Google
+              Google
             </button>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-gray-500 text-xs">
-                or continue with email
-              </span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-          </>
+          </div>
+        )}
+
+        {/* Divider */}
+        {tab === "register" && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-gray-500 text-xs">or continue with email</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
         )}
 
         {/* Form */}
@@ -263,7 +261,7 @@ export default function AuthForm({
           )}
 
           {tab === "register" && (
-            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 type="text"
                 value={form.name}
@@ -290,29 +288,57 @@ export default function AuthForm({
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {tab === "register" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, password: e.target.value }))
+                }
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Password"
+              />
+            </div>
+          ) : (
+            <>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, password: e.target.value }))
+                }
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Password"
+              />
             </>
           )}
 
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, email: e.target.value }))
-            }
-            required
-            className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-            placeholder="Email"
-          />
-          <input
-            type="password"
-            value={form.password}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, password: e.target.value }))
-            }
-            required
-            className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-            placeholder="Password"
-          />
           {tab === "register" && (
             <input
               type="password"

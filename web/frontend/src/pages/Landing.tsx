@@ -211,7 +211,7 @@ function LandingNav({ activePath }: { activePath: string }) {
     {showAuthModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
-        <div className="relative w-full max-w-md mx-4">
+        <div className="relative w-full max-w-xl mx-4">
           <AuthForm
             initialTab={authTab}
             onClose={() => setShowAuthModal(false)}
@@ -934,7 +934,7 @@ export function LandingPricing() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedPlan(null)} />
-          <div className="relative w-full max-w-md mx-4">
+          <div className="relative w-full max-w-xl mx-4">
             <AuthForm
               initialTab="register"
               showTabs={false}

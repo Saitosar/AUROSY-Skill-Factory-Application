@@ -20,7 +20,7 @@ export default function AuthPage() {
       {/* Subtle background glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full opacity-20 blur-[120px] pointer-events-none" style={{ background: "radial-gradient(circle, #a78bfa 0%, transparent 70%)" }} />
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-xl">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
