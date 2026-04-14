@@ -136,28 +136,28 @@ function LandingNav({ activePath }: { activePath: string }) {
 
 /* ── Code Stream Animation ── */
 const CODE_LINES = [
-  { text: "import mujoco, numpy as np, torch, onnxruntime as ort", color: "text-[#c084fc]" },
-  { text: "from aurosy.skills import SkillFactory, deploy_config, PolicyRunner", color: "text-[#e879f9]" },
-  { text: "from unitree_sdk2.g1 import G1Robot, JointState, IMUSensor, Actuator", color: "text-[#c084fc]" },
+  { text: "import mujoco, numpy as np, torch, onnxruntime as ort", color: "#c084fc" },
+  { text: "from aurosy.skills import SkillFactory, deploy_config, PolicyRunner", color: "#e879f9" },
+  { text: "from unitree_sdk2.g1 import G1Robot, JointState, IMUSensor, Actuator", color: "#c084fc" },
   { text: "", color: "" },
-  { text: "class BalanceSkill(SkillFactory.BaseSkill, metaclass=SkillMeta):", color: "text-[#22d3ee]" },
-  { text: "    def __init__(self, robot_model='g1_29dof', sim_dt=0.002, decimation=10):", color: "text-[#fbbf24]" },
-  { text: "        self.kp, self.kd = 120.0, 10.0  # PD gains for joint position control", color: "text-[#4ade80]" },
-  { text: "        self.target_height = 0.75  # target CoM height in meters from ground plane", color: "text-[#34d399]" },
-  { text: "        self.joint_limits = robot_model.get_limits(safety_margin=0.95, units='rad')", color: "text-[#2dd4bf]" },
+  { text: "class BalanceSkill(SkillFactory.BaseSkill, metaclass=SkillMeta):", color: "#22d3ee" },
+  { text: "    def __init__(self, robot_model='g1_29dof', sim_dt=0.002, decimation=10):", color: "#fbbf24" },
+  { text: "        self.kp, self.kd = 120.0, 10.0  # PD gains for joint position control", color: "#4ade80" },
+  { text: "        self.target_height = 0.75  # target CoM height in meters from ground plane", color: "#34d399" },
+  { text: "        self.joint_limits = robot_model.get_limits(safety_margin=0.95, units='rad')", color: "#2dd4bf" },
   { text: "", color: "" },
-  { text: "    def compute_action(self, obs: JointState, dt: float = 0.01) -> np.ndarray:", color: "text-[#facc15]" },
-  { text: "        pitch, roll = obs['imu_euler'][1], obs['imu_euler'][0]  # body orientation", color: "text-[#67e8f9]" },
-  { text: "        torque = self.pd_control(pitch, roll, self.kp, self.kd, damping_ratio=0.7)", color: "text-[#a78bfa]" },
-  { text: "        return np.clip(torque, -self.max_torque, self.max_torque).astype(np.float32)", color: "text-[#38bdf8]" },
+  { text: "    def compute_action(self, obs: JointState, dt: float = 0.01) -> np.ndarray:", color: "#facc15" },
+  { text: "        pitch, roll = obs['imu_euler'][1], obs['imu_euler'][0]  # body orientation", color: "#67e8f9" },
+  { text: "        torque = self.pd_control(pitch, roll, self.kp, self.kd, damping_ratio=0.7)", color: "#a78bfa" },
+  { text: "        return np.clip(torque, -self.max_torque, self.max_torque).astype(np.float32)", color: "#38bdf8" },
   { text: "", color: "" },
-  { text: "robot = G1Robot(connection='mujoco_sim', dof=29, control_freq=500, sensor_freq=1000)", color: "text-[#fb923c]" },
-  { text: "skill = BalanceSkill(robot_model='g1_29dof', sim_dt=0.002, decimation=10)", color: "text-[#f97316]" },
-  { text: "factory = SkillFactory(env='browser', physics='mujoco', gpu=True, num_envs=4096)", color: "text-[#fb923c]" },
-  { text: "factory.train(robot, skill, episodes=2_000_000, lr=3e-4, batch_size=4096, epochs=5)", color: "text-[#e879f9]" },
-  { text: "factory.export_onnx(skill, path='balance_v2.onnx', opset=17, optimize=True)", color: "text-[#c084fc]" },
-  { text: "factory.deploy(robot, skill, target='production', verify=True, rollback_on_fail=True)", color: "text-[#4ade80]" },
-  { text: "# Skill deployed successfully — 29 joints active, latency 1.2ms, reward 4850.3 ✓", color: "text-[#22c55e]" },
+  { text: "robot = G1Robot(connection='mujoco_sim', dof=29, control_freq=500, sensor_freq=1000)", color: "#fb923c" },
+  { text: "skill = BalanceSkill(robot_model='g1_29dof', sim_dt=0.002, decimation=10)", color: "#f97316" },
+  { text: "factory = SkillFactory(env='browser', physics='mujoco', gpu=True, num_envs=4096)", color: "#fb923c" },
+  { text: "factory.train(robot, skill, episodes=2_000_000, lr=3e-4, batch_size=4096, epochs=5)", color: "#e879f9" },
+  { text: "factory.export_onnx(skill, path='balance_v2.onnx', opset=17, optimize=True)", color: "#c084fc" },
+  { text: "factory.deploy(robot, skill, target='production', verify=True, rollback_on_fail=True)", color: "#4ade80" },
+  { text: "# Skill deployed successfully — 29 joints active, latency 1.2ms, reward 4850.3 ✓", color: "#22c55e" },
 ];
 
 function CodeStream() {
@@ -215,10 +215,10 @@ function CodeStream() {
 
             return (
               <div key={i} className="flex items-center whitespace-nowrap">
-                <span className={line.color}>
+                <span style={{ color: line.color }}>
                   {displayText}
                   {isCurrentLine && charIndex < line.text.length && (
-                    <span className="inline-block w-[6px] h-[14px] bg-purple-400 ml-[1px] animate-pulse align-middle" />
+                    <span className="inline-block w-[6px] h-[14px] ml-[1px] animate-pulse align-middle" style={{ backgroundColor: line.color }} />
                   )}
                 </span>
               </div>
@@ -251,15 +251,17 @@ function PartnerLogos() {
 }
 
 /* ── Tech Badge with typing + connector line ── */
-function TechBadge({ text, prefix, position, lineEnd, delay = 0 }: {
+function TechBadge({ text, prefix, position, lineEnd, color, delay = 0 }: {
   text: string;
   prefix: string;
   position: string;
   lineEnd: { x: string; y: string };
+  color: string;
   delay?: number;
 }) {
   const [visible, setVisible] = useState(false);
   const [typed, setTyped] = useState(0);
+  const gradId = `lg-${prefix.replace(/[^a-z]/gi, "")}`;
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), delay);
@@ -276,34 +278,34 @@ function TechBadge({ text, prefix, position, lineEnd, delay = 0 }: {
     <div className={`absolute ${position} z-20`} style={{ opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" }}>
       {/* Connector line */}
       <svg className="absolute w-full h-full pointer-events-none" style={{ overflow: "visible", top: 0, left: 0 }}>
-        <line
-          x1="0" y1="50%" x2={lineEnd.x} y2={lineEnd.y}
-          stroke="url(#lineGrad)" strokeWidth="1" strokeDasharray="4 3"
-          style={{ opacity: visible ? 0.5 : 0, transition: "opacity 1s ease 0.5s" }}
-        />
-        <circle cx={lineEnd.x} cy={lineEnd.y} r="3" fill="#a855f7" opacity={visible ? 0.8 : 0} style={{ transition: "opacity 1s ease 0.5s" }}>
-          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite" />
-        </circle>
         <defs>
-          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.2" />
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.7" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.1" />
           </linearGradient>
         </defs>
+        <line
+          x1="0" y1="50%" x2={lineEnd.x} y2={lineEnd.y}
+          stroke={`url(#${gradId})`} strokeWidth="1" strokeDasharray="4 3"
+          style={{ opacity: visible ? 0.6 : 0, transition: "opacity 1s ease 0.5s" }}
+        >
+          <animate attributeName="stroke-dashoffset" values="0;-14" dur="1.5s" repeatCount="indefinite" />
+        </line>
+        <circle cx={lineEnd.x} cy={lineEnd.y} r="3" fill={color} opacity={visible ? 0.9 : 0} style={{ transition: "opacity 1s ease 0.5s" }}>
+          <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite" />
+        </circle>
       </svg>
 
-      {/* Badge */}
-      <div className="relative px-4 py-2.5 bg-[#0d1117]/80 backdrop-blur-lg border border-purple-500/20 rounded-lg shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.25)] transition-shadow">
-        <div className="font-mono text-[11px] leading-tight">
-          <span className="text-purple-400/60">{prefix}</span>
-          <span className="text-[#e2e8f0]" style={{ textShadow: "0 0 8px rgba(168,85,247,0.3)" }}>
-            {text.slice(0, typed)}
-          </span>
-          {typed < text.length && (
-            <span className="inline-block w-[5px] h-[13px] bg-cyan-400 ml-[1px] animate-pulse align-middle opacity-80" />
-          )}
-        </div>
+      {/* Text only — no background */}
+      <div className="relative font-mono text-[13px] font-semibold leading-tight whitespace-nowrap">
+        <span style={{ color, opacity: 0.5 }}>{prefix}</span>
+        <span style={{ color, textShadow: `0 0 12px ${color}, 0 0 24px ${color}40` }}>
+          {text.slice(0, typed)}
+        </span>
+        {typed < text.length && (
+          <span className="inline-block w-[6px] h-[14px] ml-[1px] animate-pulse align-middle" style={{ backgroundColor: color, opacity: 0.8 }} />
+        )}
       </div>
     </div>
   );
@@ -331,6 +333,7 @@ function RobotVisual() {
         text='"Browser-based simulation"'
         position="top-[15%] right-[5%] animate-float-slow"
         lineEnd={{ x: "-80px", y: "60px" }}
+        color="#22d3ee"
         delay={800}
       />
       <TechBadge
@@ -338,6 +341,7 @@ function RobotVisual() {
         text='"29-DoF full body control"'
         position="top-[50%] right-[0%] animate-float-medium"
         lineEnd={{ x: "-100px", y: "0" }}
+        color="#a78bfa"
         delay={1600}
       />
       <TechBadge
@@ -345,6 +349,7 @@ function RobotVisual() {
         text='"Real-time MuJoCo engine"'
         position="bottom-[25%] left-[5%] animate-float-fast"
         lineEnd={{ x: "100px", y: "-40px" }}
+        color="#4ade80"
         delay={2400}
       />
     </div>
