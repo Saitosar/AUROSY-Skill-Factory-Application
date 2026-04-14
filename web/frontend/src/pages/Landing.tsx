@@ -95,9 +95,57 @@ const NAV_ITEMS = [
 ];
 
 function LandingNav({ activePath }: { activePath: string }) {
-  const { user } = useAuth();
+  const { user, login, register } = useAuth();
   const isRegularUser = user && user.role !== 'admin';
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  // Close bell on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    if (bellOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [bellOpen]);
+
+  // Welcome notifications for logged-in users
+  const welcomeNotifications = isRegularUser ? [
+    { id: 1, title: "Welcome to AUROSY!", desc: "Start by exploring the Motion Studio to create your first robot skill.", time: "now", icon: "🎉" },
+    { id: 2, title: "20-day trial active", desc: "You have full Pro access. Build, train, and export skills freely.", time: "now", icon: "⏱️" },
+    { id: 3, title: "New: Visual Keyframe Editor", desc: "Design robot motions frame-by-frame in your browser.", time: "1d ago", icon: "🆕" },
+  ] : [];
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setAuthLoading(true);
+    try {
+      if (authTab === "register") {
+        if (authForm.password !== authForm.confirmPassword) {
+          setAuthError("Passwords don't match");
+          setAuthLoading(false);
+          return;
+        }
+        await register({ email: authForm.email, password: authForm.password, name: authForm.name });
+      } else {
+        await login(authForm.email, authForm.password);
+      }
+      setShowAuthModal(false);
+      setAuthForm({ name: "", email: "", password: "", confirmPassword: "" });
+    } catch (err: unknown) {
+      setAuthError(err instanceof Error ? err.message : "Something went wrong");
+    }
+    setAuthLoading(false);
+  };
+
   return (
+    <>
     <header className="absolute top-0 left-0 right-0 z-40 px-6 lg:px-12">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between h-20">
         {/* Logo */}
@@ -149,20 +197,58 @@ function LandingNav({ activePath }: { activePath: string }) {
         {/* Right side */}
         <div className="flex items-center gap-4">
           {/* Notification bell */}
-          <button className="text-gray-500 hover:text-white transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </button>
+          <div className="relative" ref={bellRef}>
+            <button
+              onClick={() => setBellOpen((v) => !v)}
+              className="text-gray-500 hover:text-white transition-colors relative cursor-pointer"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              {isRegularUser && welcomeNotifications.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-purple-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                  {welcomeNotifications.length}
+                </span>
+              )}
+            </button>
+            {bellOpen && (
+              <div className="absolute right-0 top-10 w-80 bg-[#1a1f2e] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/[0.06]">
+                  <span className="text-sm font-semibold text-white">Notifications</span>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {!isRegularUser ? (
+                    <div className="px-4 py-8 text-center text-gray-500 text-sm">Sign in to see notifications</div>
+                  ) : (
+                    welcomeNotifications.map((n) => (
+                      <div key={n.id} className="px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                        <div className="flex items-start gap-3">
+                          <span className="text-base flex-shrink-0 mt-0.5">{n.icon}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-white font-medium">{n.title}</p>
+                            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{n.desc}</p>
+                            <p className="text-[10px] text-gray-600 mt-1">{n.time}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {isRegularUser ? (
             /* Authenticated: avatar + name + dropdown */
             <UserButton />
           ) : (
             <>
-              {/* Guest: user icon + separator + Start Building */}
-              <button className="text-gray-500 hover:text-white transition-colors">
+              {/* Guest: user icon opens auth modal */}
+              <button
+                onClick={() => { setAuthTab("login"); setShowAuthModal(true); setAuthError(""); }}
+                className="text-gray-500 hover:text-white transition-colors cursor-pointer"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
@@ -202,6 +288,114 @@ function LandingNav({ activePath }: { activePath: string }) {
         </div>
       </div>
     </header>
+
+    {/* Auth Modal */}
+    {showAuthModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
+        <div className="relative w-full max-w-md mx-4 bg-[#161a22] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+          <div className="h-1" style={{ background: "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80)" }} />
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3
+                className="text-xl font-bold"
+                style={{
+                  backgroundImage: "linear-gradient(90deg, #a78bfa, #e879f9)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                {authTab === "login" ? "Welcome back" : "Create account"}
+              </h3>
+              <button onClick={() => setShowAuthModal(false)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 mb-6 p-1 bg-white/[0.04] rounded-xl">
+              <button
+                onClick={() => { setAuthTab("login"); setAuthError(""); }}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${authTab === "login" ? "bg-white/[0.08] text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => { setAuthTab("register"); setAuthError(""); }}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${authTab === "register" ? "bg-white/[0.08] text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Sign Up
+              </button>
+            </div>
+
+            {authTab === "register" && (
+              <div className="mb-4 px-4 py-3 rounded-xl border" style={{ background: "rgba(167,139,250,0.06)", borderColor: "rgba(167,139,250,0.2)" }}>
+                <p className="text-sm font-medium flex items-center gap-2" style={{ color: "#a78bfa" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                  20-day free trial included
+                </p>
+                <p className="text-gray-400 text-xs mt-1">Full Pro access. No credit card required.</p>
+              </div>
+            )}
+
+            <form onSubmit={handleAuth} className="space-y-3">
+              {authError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{authError}</div>
+              )}
+              {authTab === "register" && (
+                <input
+                  type="text"
+                  value={authForm.name}
+                  onChange={(e) => setAuthForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  placeholder="Name"
+                />
+              )}
+              <input
+                type="email"
+                value={authForm.email}
+                onChange={(e) => setAuthForm((f) => ({ ...f, email: e.target.value }))}
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={authForm.password}
+                onChange={(e) => setAuthForm((f) => ({ ...f, password: e.target.value }))}
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Password"
+              />
+              {authTab === "register" && (
+                <input
+                  type="password"
+                  value={authForm.confirmPassword}
+                  onChange={(e) => setAuthForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                  required
+                  className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  placeholder="Confirm password"
+                />
+              )}
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 font-bold rounded-xl transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  background: "linear-gradient(90deg, #a78bfa, #e879f9)",
+                  color: "#0d1117",
+                  boxShadow: "0 0 20px rgba(167,139,250,0.3)",
+                }}
+              >
+                {authLoading ? "Please wait..." : authTab === "login" ? "Sign In" : "Create Account & Start Trial"}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
