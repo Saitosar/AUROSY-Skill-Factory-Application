@@ -772,7 +772,7 @@ export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, au
           {loadErr.message}
         </div>
       ) : null}
-      <Canvas frameloop="always" shadows camera={camSetup} gl={{ antialias: true }}>
+      <Canvas frameloop="always" shadows={{ type: THREE.PCFShadowMap }} camera={camSetup} gl={{ antialias: true }}>
         <color attach="background" args={["#0b0f14"]} />
         <ambientLight intensity={0.6} />
         <directionalLight castShadow position={[5, 5, 5]} intensity={1.2} shadow-mapSize={[1024, 1024]} />

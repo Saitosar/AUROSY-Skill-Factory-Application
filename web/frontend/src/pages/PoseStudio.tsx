@@ -82,7 +82,6 @@ export default function PoseStudio() {
   const [draftName, setDraftName] = useState("");
   const [activeDanceName, setActiveDanceName] = useState<string | null>(null);
   const [panelTab, setPanelTab] = useState<"joints" | "timeline" | "capture">("joints");
-  const [panelTab, setPanelTab] = useState<"joints" | "timeline" | "capture">("joints");
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
