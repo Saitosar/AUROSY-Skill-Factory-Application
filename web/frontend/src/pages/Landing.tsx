@@ -202,7 +202,7 @@ function CodeStream() {
   }, [visibleLines, charIndex]);
 
   return (
-    <div className="absolute bottom-0 left-[calc(50%+80px)] -translate-x-1/2 w-[440px] h-[70px] z-[5] pointer-events-none overflow-hidden">
+    <div className="absolute bottom-0 left-[calc(50%+100px)] -translate-x-1/2 w-[440px] h-[70px] z-[5] pointer-events-none overflow-hidden">
 
       {/* Code container */}
       <div className="h-full flex items-start justify-start pt-1">
