@@ -100,7 +100,7 @@ function LandingNav({ activePath }: { activePath: string }) {
   const isRegularUser = user && user.role !== 'admin';
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
-  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "", confirmPassword: "", industry: "" });
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -115,12 +115,12 @@ function LandingNav({ activePath }: { activePath: string }) {
           setAuthLoading(false);
           return;
         }
-        await register({ email: authForm.email, password: authForm.password, name: authForm.name });
+        await register({ email: authForm.email, password: authForm.password, name: authForm.name, industry: authForm.industry });
       } else {
         await login(authForm.email, authForm.password);
       }
       setShowAuthModal(false);
-      setAuthForm({ name: "", email: "", password: "", confirmPassword: "" });
+      setAuthForm({ name: "", email: "", password: "", confirmPassword: "", industry: "" });
     } catch (err: unknown) {
       setAuthError(err instanceof Error ? err.message : "Something went wrong");
     }
@@ -287,6 +287,7 @@ function LandingNav({ activePath }: { activePath: string }) {
                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{authError}</div>
               )}
               {authTab === "register" && (
+                <>
                 <input
                   type="text"
                   value={authForm.name}
@@ -294,6 +295,46 @@ function LandingNav({ activePath }: { activePath: string }) {
                   className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
                   placeholder="Name"
                 />
+                <select
+                  value={authForm.industry}
+                  onChange={(e) => setAuthForm((f) => ({ ...f, industry: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500 transition-colors cursor-pointer appearance-none"
+                  style={{ colorScheme: "dark" }}
+                >
+                  <option value="" disabled>Select your profession</option>
+                  <option value="Software Engineer">Software Engineer</option>
+                  <option value="Robotics Engineer">Robotics Engineer</option>
+                  <option value="ML / AI Engineer">ML / AI Engineer</option>
+                  <option value="Data Scientist">Data Scientist</option>
+                  <option value="Mechanical Engineer">Mechanical Engineer</option>
+                  <option value="Electrical Engineer">Electrical Engineer</option>
+                  <option value="Embedded Systems Engineer">Embedded Systems Engineer</option>
+                  <option value="Control Systems Engineer">Control Systems Engineer</option>
+                  <option value="Computer Vision Engineer">Computer Vision Engineer</option>
+                  <option value="Hardware Engineer">Hardware Engineer</option>
+                  <option value="Product Manager">Product Manager</option>
+                  <option value="Project Manager">Project Manager</option>
+                  <option value="UX / UI Designer">UX / UI Designer</option>
+                  <option value="3D Artist / Animator">3D Artist / Animator</option>
+                  <option value="DevOps / SRE">DevOps / SRE</option>
+                  <option value="QA Engineer">QA Engineer</option>
+                  <option value="CTO / Tech Lead">CTO / Tech Lead</option>
+                  <option value="CEO / Founder">CEO / Founder</option>
+                  <option value="Research Scientist">Research Scientist</option>
+                  <option value="Professor / Academic">Professor / Academic</option>
+                  <option value="PhD Student">PhD Student</option>
+                  <option value="Student">Student</option>
+                  <option value="Entrepreneur">Entrepreneur</option>
+                  <option value="Consultant">Consultant</option>
+                  <option value="Sales / Business Dev">Sales / Business Dev</option>
+                  <option value="Marketing Specialist">Marketing Specialist</option>
+                  <option value="Technical Writer">Technical Writer</option>
+                  <option value="Simulation Engineer">Simulation Engineer</option>
+                  <option value="Systems Architect">Systems Architect</option>
+                  <option value="Automation Engineer">Automation Engineer</option>
+                  <option value="Other">Other</option>
+                </select>
+                </>
               )}
               <input
                 type="email"
@@ -860,7 +901,7 @@ export function LandingPricing() {
   const { user, register } = useAuth();
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [regForm, setRegForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [regForm, setRegForm] = useState({ name: "", email: "", password: "", confirmPassword: "", industry: "" });
   const [regError, setRegError] = useState("");
   const [regLoading, setRegLoading] = useState(false);
   const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
@@ -888,7 +929,7 @@ export function LandingPricing() {
     }
     setRegLoading(true);
     try {
-      await register({ email: regForm.email, password: regForm.password, name: regForm.name });
+      await register({ email: regForm.email, password: regForm.password, name: regForm.name, industry: regForm.industry });
       navigate("/app/pose");
     } catch (err: any) {
       setRegError(err.message || "Registration failed");
@@ -1156,6 +1197,45 @@ export function LandingPricing() {
                     placeholder="Email"
                   />
                 </div>
+                <select
+                  value={regForm.industry}
+                  onChange={(e) => setRegForm((f) => ({ ...f, industry: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500 transition-colors cursor-pointer appearance-none"
+                  style={{ colorScheme: "dark" }}
+                >
+                  <option value="" disabled>Select your profession</option>
+                  <option value="Software Engineer">Software Engineer</option>
+                  <option value="Robotics Engineer">Robotics Engineer</option>
+                  <option value="ML / AI Engineer">ML / AI Engineer</option>
+                  <option value="Data Scientist">Data Scientist</option>
+                  <option value="Mechanical Engineer">Mechanical Engineer</option>
+                  <option value="Electrical Engineer">Electrical Engineer</option>
+                  <option value="Embedded Systems Engineer">Embedded Systems Engineer</option>
+                  <option value="Control Systems Engineer">Control Systems Engineer</option>
+                  <option value="Computer Vision Engineer">Computer Vision Engineer</option>
+                  <option value="Hardware Engineer">Hardware Engineer</option>
+                  <option value="Product Manager">Product Manager</option>
+                  <option value="Project Manager">Project Manager</option>
+                  <option value="UX / UI Designer">UX / UI Designer</option>
+                  <option value="3D Artist / Animator">3D Artist / Animator</option>
+                  <option value="DevOps / SRE">DevOps / SRE</option>
+                  <option value="QA Engineer">QA Engineer</option>
+                  <option value="CTO / Tech Lead">CTO / Tech Lead</option>
+                  <option value="CEO / Founder">CEO / Founder</option>
+                  <option value="Research Scientist">Research Scientist</option>
+                  <option value="Professor / Academic">Professor / Academic</option>
+                  <option value="PhD Student">PhD Student</option>
+                  <option value="Student">Student</option>
+                  <option value="Entrepreneur">Entrepreneur</option>
+                  <option value="Consultant">Consultant</option>
+                  <option value="Sales / Business Dev">Sales / Business Dev</option>
+                  <option value="Marketing Specialist">Marketing Specialist</option>
+                  <option value="Technical Writer">Technical Writer</option>
+                  <option value="Simulation Engineer">Simulation Engineer</option>
+                  <option value="Systems Architect">Systems Architect</option>
+                  <option value="Automation Engineer">Automation Engineer</option>
+                  <option value="Other">Other</option>
+                </select>
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="password"
