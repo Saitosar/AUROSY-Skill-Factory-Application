@@ -134,6 +134,107 @@ function LandingNav({ activePath }: { activePath: string }) {
   );
 }
 
+/* ── Code Stream Animation ── */
+const CODE_LINES = [
+  { text: "import mujoco", color: "text-purple-400" },
+  { text: "from aurosy import SkillFactory", color: "text-purple-400" },
+  { text: "from unitree_sdk2 import G1Robot", color: "text-purple-400" },
+  { text: "", color: "" },
+  { text: "class BalanceSkill(Skill):", color: "text-cyan-400" },
+  { text: "    def __init__(self):", color: "text-yellow-300" },
+  { text: "        self.kp = 120.0", color: "text-green-300" },
+  { text: "        self.kd = 10.0", color: "text-green-300" },
+  { text: "        self.target_height = 0.75", color: "text-green-300" },
+  { text: "", color: "" },
+  { text: "    def compute_action(self, obs):", color: "text-yellow-300" },
+  { text: "        pitch = obs['imu_euler'][1]", color: "text-gray-300" },
+  { text: "        roll = obs['imu_euler'][0]", color: "text-gray-300" },
+  { text: "        torque = self.pd_control(pitch, roll)", color: "text-gray-300" },
+  { text: "        return torque", color: "text-cyan-300" },
+  { text: "", color: "" },
+  { text: "robot = G1Robot()", color: "text-orange-300" },
+  { text: "skill = BalanceSkill()", color: "text-orange-300" },
+  { text: "factory = SkillFactory(env='mujoco')", color: "text-orange-300" },
+  { text: "factory.simulate(robot, skill)", color: "text-purple-300" },
+  { text: "factory.deploy(robot, skill)", color: "text-green-400" },
+  { text: "# Training complete ✓", color: "text-green-500" },
+];
+
+function CodeStream() {
+  const [visibleLines, setVisibleLines] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+
+  useEffect(() => {
+    if (visibleLines >= CODE_LINES.length) {
+      // Reset after a pause
+      const timeout = setTimeout(() => {
+        setVisibleLines(0);
+        setCharIndex(0);
+      }, 4000);
+      return () => clearTimeout(timeout);
+    }
+
+    const currentLine = CODE_LINES[visibleLines];
+    if (!currentLine) return;
+
+    if (currentLine.text === "") {
+      // Empty line — skip quickly
+      const timeout = setTimeout(() => {
+        setVisibleLines((v) => v + 1);
+        setCharIndex(0);
+      }, 150);
+      return () => clearTimeout(timeout);
+    }
+
+    if (charIndex < currentLine.text.length) {
+      const timeout = setTimeout(() => {
+        setCharIndex((c) => c + 1);
+      }, 20 + Math.random() * 30);
+      return () => clearTimeout(timeout);
+    }
+
+    // Line complete — move to next
+    const timeout = setTimeout(() => {
+      setVisibleLines((v) => v + 1);
+      setCharIndex(0);
+    }, 200 + Math.random() * 200);
+    return () => clearTimeout(timeout);
+  }, [visibleLines, charIndex]);
+
+  return (
+    <div className="absolute bottom-16 left-0 right-0 h-[180px] z-[5] pointer-events-none overflow-hidden">
+      {/* Fade top edge */}
+      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
+      {/* Fade bottom edge */}
+      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#0B0F14] to-transparent z-10" />
+
+      {/* Code container */}
+      <div className="h-full flex items-center justify-center">
+        <div className="w-full max-w-[900px] mx-auto px-8 font-mono text-[11px] sm:text-xs leading-[1.8] opacity-40">
+          {CODE_LINES.slice(0, visibleLines + 1).map((line, i) => {
+            if (line.text === "") return <div key={i} className="h-[1.8em]" />;
+
+            const isCurrentLine = i === visibleLines;
+            const displayText = isCurrentLine ? line.text.slice(0, charIndex) : line.text;
+
+            return (
+              <div key={i} className="flex items-center gap-3 whitespace-nowrap">
+                <span className="text-gray-700 w-5 text-right select-none flex-shrink-0">{i + 1}</span>
+                <span className={line.color}>
+                  {displayText}
+                  {isCurrentLine && charIndex < line.text.length && (
+                    <span className="inline-block w-[6px] h-[14px] bg-purple-400 ml-[1px] animate-pulse align-middle" />
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Partner logos ── */
 function PartnerLogos() {
   const partners = ["NVIDIA", "Unitree", "MuJoCo", "PyTorch", "ROS 2", "Isaac Sim"];
@@ -497,6 +598,9 @@ export default function LandingLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 pt-20 pb-16 relative z-10">
         {children}
       </div>
+
+      {/* Code stream animation */}
+      <CodeStream />
 
       {/* Partner logos */}
       <PartnerLogos />
