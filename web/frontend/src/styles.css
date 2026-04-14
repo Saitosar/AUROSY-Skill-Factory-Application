@@ -2724,8 +2724,8 @@ tr.joint-row-selected td {
   width: 81.3%;
   height: 95.2%;
   margin: 0 auto;
-  background-image: radial-gradient(#2a2a2e, #1e1e22, #18181c);
-  border: 1px solid #333;
+  background-image: radial-gradient(#cfd0d1, #cfd0d1, #adadae);
+  border: 1px solid #e5e7e9;
   border-radius: 3.1% / 4%;
   z-index: 1;
 }
@@ -2736,7 +2736,7 @@ tr.joint-row-selected td {
   height: 99.25%;
   margin: 0.3% auto;
   z-index: 2;
-  background-color: #1a1a1e;
+  background-color: #c0c1c3;
   border-radius: 2.75% / 3.8%;
 }
 .mbp-display .display-edge .bezel {
@@ -2748,7 +2748,7 @@ tr.joint-row-selected td {
   top: 0.4%;
   border-radius: 2.8% / 3.2%;
   z-index: 3;
-  background-color: #0a0a0e;
+  background-color: #1a1a1e;
 }
 .mbp-display .display-edge .bezel .display-camera {
   width: .62%;
@@ -2759,7 +2759,7 @@ tr.joint-row-selected td {
   position: absolute;
   border-radius: 50%;
   z-index: 5;
-  background-color: #252528;
+  background-color: #303132;
 }
 .mbp-display .display-edge .bezel .display-frame {
   display: block;
@@ -2782,7 +2782,7 @@ tr.joint-row-selected td {
   height: 4.9%;
   bottom: .15%;
   z-index: 3;
-  background-color: #141418;
+  background-color: #b0b1b3;
   border-bottom-right-radius: 2.5% 70%;
   border-bottom-left-radius: 2.5% 70%;
 }
@@ -2819,7 +2819,7 @@ tr.joint-row-selected td {
   left: 0;
   right: 0;
   top: 0;
-  background: linear-gradient(90deg, #28282c 0%, #35353a .5%, #42424a 1%, #38383e 2%, #32323a 4%, #3a3a42 10%, #3e3e46 50%, #3a3a42 90%, #32323a 96%, #38383e 98%, #42424a 99%, #35353a 99.5%, #28282c 100%);
+  background: linear-gradient(90deg, #68696b 0%, #98999c .5%, #b8b9bc 1%, #a8a9ac 2%, #9a9b9e 4%, #a8a9ac 10%, #c8c9cc 50%, #a8a9ac 90%, #9a9b9e 96%, #a8a9ac 98%, #b8b9bc 99%, #98999c 99.5%, #68696b 100%);
   z-index: 100;
   border-radius: 1px;
   display: flex;
@@ -2832,7 +2832,7 @@ tr.joint-row-selected td {
   height: 65.5%;
   z-index: 101;
   border-radius: 0 0 0 20px;
-  background: linear-gradient(180deg, rgba(60,60,68,.5) 0%, rgba(50,50,58,.5) 60%, rgba(30,30,38,.4) 100%), radial-gradient(circle at right, rgba(55,55,63,.5) 0%, rgba(55,55,63,.5) 50%, rgba(40,40,48,.5) 80%, rgba(10,10,18,.75) 100%);
+  background: linear-gradient(180deg, rgba(193,194,198,.7) 0%, rgba(170,171,175,.6) 60%, rgba(140,141,145,.5) 100%), radial-gradient(circle at right, rgba(180,181,185,.6) 0%, rgba(180,181,185,.6) 50%, rgba(150,151,155,.5) 80%, rgba(100,101,105,.7) 100%);
   background-blend-mode: darken;
 }
 .mbp-keyboard .opener-right {
@@ -2841,7 +2841,7 @@ tr.joint-row-selected td {
   height: 65.5%;
   z-index: 101;
   border-radius: 0 0 20px 0;
-  background: linear-gradient(180deg, rgba(60,60,68,.5) 0%, rgba(50,50,58,.5) 60%, rgba(30,30,38,.4) 100%), radial-gradient(circle at left, rgba(55,55,63,.5) 0%, rgba(55,55,63,.5) 50%, rgba(40,40,48,.5) 80%, rgba(10,10,18,.75) 100%);
+  background: linear-gradient(180deg, rgba(193,194,198,.7) 0%, rgba(170,171,175,.6) 60%, rgba(140,141,145,.5) 100%), radial-gradient(circle at left, rgba(180,181,185,.6) 0%, rgba(180,181,185,.6) 50%, rgba(150,151,155,.5) 80%, rgba(100,101,105,.7) 100%);
   background-blend-mode: darken;
 }
 .mbp-keyboard .bottom-left {
@@ -2851,7 +2851,7 @@ tr.joint-row-selected td {
   height: 58%;
   top: 10%;
   z-index: 99;
-  background: linear-gradient(180deg, #3a3a42 0%, #28282e 65%, #1a1a1e 90%, #141418 96%, #101014 100%);
+  background: linear-gradient(180deg, #e5e6e9 0%, #c8c9cc 65%, #a0a1a4 90%, #88898c 96%, #707174 100%);
   border-bottom-left-radius: 25% 60%;
 }
 .mbp-keyboard .bottom-right {
@@ -2861,7 +2861,7 @@ tr.joint-row-selected td {
   height: 58%;
   top: 10%;
   z-index: 99;
-  background: linear-gradient(180deg, #3a3a42 0%, #28282e 65%, #1a1a1e 90%, #141418 96%, #101014 100%);
+  background: linear-gradient(180deg, #e5e6e9 0%, #c8c9cc 65%, #a0a1a4 90%, #88898c 96%, #70717a 100%);
   border-bottom-right-radius: 25% 60%;
 }
 .mbp-keyboard .mbp-shadow {
