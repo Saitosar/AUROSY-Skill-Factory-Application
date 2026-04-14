@@ -5,8 +5,7 @@ import { useAuth } from "./contexts/AuthContext";
 import NotificationBell from "./components/NotificationBell";
 import Authoring from "./pages/Authoring";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import AuthPage from "./pages/AuthPage";
 import LandingLayout, { LandingHome, LandingProduct, LandingPricing, LandingCompany } from "./pages/Landing";
 import Pipeline from "./pages/Pipeline";
 import PoseStudio from "./pages/PoseStudio";
@@ -121,8 +120,8 @@ export default function App() {
       <Route path="/product" element={<LandingLayout><LandingProduct /></LandingLayout>} />
       <Route path="/pricing" element={<LandingLayout><LandingPricing /></LandingLayout>} />
       <Route path="/company" element={<LandingLayout><LandingCompany /></LandingLayout>} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<AuthPage />} />
+      <Route path="/register" element={<AuthPage />} />
       <Route path="/panel" element={<AdminPanel />} />
 
       {/* ── Protected: App pages (with topbar) ── */}
