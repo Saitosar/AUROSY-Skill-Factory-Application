@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { attachBackendProxyErrorHandler } from "./vite.backendProxyError";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,7 +21,7 @@ export default defineConfig({
   build: {
     target: "es2022",
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   assetsInclude: ["**/*.wasm"],
   optimizeDeps: {
     exclude: ["@mujoco/mujoco"],
