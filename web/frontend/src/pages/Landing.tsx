@@ -1061,19 +1061,123 @@ export function LandingDocs() {
 }
 
 export function LandingCompany() {
+  const values = [
+    { icon: "🎯", title: "Simulation First", desc: "Every skill is born in a physics simulator — safe, fast, repeatable. No broken hardware, no wasted time." },
+    { icon: "🧠", title: "AI-Driven", desc: "Reinforcement learning and neural policies turn ideas into motions that adapt to real-world unpredictability." },
+    { icon: "🌍", title: "Open Ecosystem", desc: "We build on open standards — MuJoCo, ONNX, ROS 2, Isaac Sim — so your skills run everywhere." },
+    { icon: "⚡", title: "Creator Economy", desc: "Skill creators earn by publishing to a shared marketplace. The best moves win, regardless of who made them." },
+  ];
+
+  const milestones = [
+    { year: "2025", text: "Research phase — physics simulation pipeline, RL training framework, G1 humanoid integration" },
+    { year: "2026", text: "Platform launch — browser-based Skill Factory, visual editor, ONNX export, marketplace beta" },
+    { year: "2027", text: "Scale — multi-robot support, community marketplace, enterprise partnerships, real-hardware deployment" },
+  ];
+
   return (
     <PageTransition direction="right">
-      <div className="flex h-full items-center justify-center px-6">
-        <div className="text-center max-w-lg">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20">
-            <span className="text-white font-bold text-2xl">A</span>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-4">About AUROSY</h2>
-          <p className="text-gray-400 text-lg leading-relaxed">
-            We're building the future of robot programming.
-            Our platform enables anyone to create, simulate, and deploy robot skills
-            using AI-powered tools — no hardware or coding expertise required.
-          </p>
+      <div className="h-full overflow-y-auto px-6 py-8 scrollbar-thin scrollbar-thumb-white/10">
+        <div className="max-w-5xl mx-auto space-y-20">
+
+          {/* Hero section */}
+          <section className="text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.03] text-xs text-gray-400 tracking-wider uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              Building the future of robotics
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold">
+              <span className="text-white">We teach robots </span>
+              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-green-400 bg-clip-text text-transparent">new skills</span>
+            </h1>
+            <p className="text-gray-400 text-lg leading-relaxed max-w-2xl mx-auto">
+              AUROSY is a platform where anyone can create, simulate, and deploy robot behaviors
+              using AI — without writing low-level code or owning physical hardware.
+              We turn the complex world of robotics into a creative playground.
+            </p>
+          </section>
+
+          {/* Mission */}
+          <section className="relative">
+            <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/5 via-purple-500/5 to-green-500/5 rounded-3xl blur-xl" />
+            <div className="relative border border-white/[0.06] rounded-2xl bg-white/[0.02] p-8 md:p-12">
+              <h2 className="text-sm font-semibold tracking-[0.2em] uppercase text-cyan-400 mb-4">Our Mission</h2>
+              <p className="text-xl md:text-2xl text-white/90 leading-relaxed font-light">
+                Democratize robot programming. We believe that creating a robot skill
+                should be as intuitive as editing a video — design the motion, train the policy,
+                export to hardware. One platform, zero friction.
+              </p>
+            </div>
+          </section>
+
+          {/* Values */}
+          <section>
+            <h2 className="text-sm font-semibold tracking-[0.2em] uppercase text-purple-400 mb-8 text-center">What Drives Us</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {values.map((v, i) => (
+                <div key={i} className="group border border-white/[0.06] rounded-xl bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-colors duration-300">
+                  <div className="text-2xl mb-3">{v.icon}</div>
+                  <h3 className="text-white font-semibold text-lg mb-2">{v.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{v.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* How it works */}
+          <section className="text-center space-y-8">
+            <h2 className="text-sm font-semibold tracking-[0.2em] uppercase text-green-400 mb-2">How It Works</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { step: "01", title: "Design", desc: "Use our visual editor to pose robot joints, set keyframes, and define the motion you want.", color: "#22d3ee" },
+                { step: "02", title: "Train", desc: "Reinforcement learning runs thousands of simulated episodes to discover an optimal neural policy.", color: "#a78bfa" },
+                { step: "03", title: "Deploy", desc: "Export the trained policy as an ONNX model and deploy it to real hardware — or sell it on the marketplace.", color: "#4ade80" },
+              ].map((s, i) => (
+                <div key={i} className="space-y-3">
+                  <div className="text-4xl font-black" style={{ color: s.color, opacity: 0.3 }}>{s.step}</div>
+                  <h3 className="text-white font-semibold text-lg">{s.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Roadmap */}
+          <section>
+            <h2 className="text-sm font-semibold tracking-[0.2em] uppercase text-cyan-400 mb-8 text-center">Roadmap</h2>
+            <div className="relative space-y-0">
+              {/* Vertical line */}
+              <div className="absolute left-[22px] top-2 bottom-2 w-px bg-gradient-to-b from-cyan-500/40 via-purple-500/40 to-green-500/40" />
+              {milestones.map((m, i) => {
+                const colors = ["#22d3ee", "#a78bfa", "#4ade80"];
+                return (
+                  <div key={i} className="flex gap-6 py-5">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-[46px] h-[46px] rounded-full border border-white/10 bg-white/[0.03] flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i], boxShadow: `0 0 12px ${colors[i]}60` }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold tracking-wider uppercase mb-1" style={{ color: colors[i] }}>{m.year}</div>
+                      <p className="text-gray-300 text-sm leading-relaxed">{m.text}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Tech stack */}
+          <section className="text-center space-y-6 pb-8">
+            <h2 className="text-sm font-semibold tracking-[0.2em] uppercase text-purple-400 mb-2">Built With</h2>
+            <div className="flex flex-wrap justify-center gap-3">
+              {["MuJoCo", "PyTorch", "ONNX", "ROS 2", "Isaac Sim", "React", "FastAPI", "PostgreSQL", "Unitree SDK", "OpenAI Gym"].map((t, i) => (
+                <span key={i} className="px-4 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-gray-400 text-xs font-medium tracking-wide hover:bg-white/[0.06] hover:text-gray-300 transition-colors">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </section>
+
         </div>
       </div>
     </PageTransition>
