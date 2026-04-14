@@ -202,15 +202,15 @@ function CodeStream() {
   }, [visibleLines, charIndex]);
 
   return (
-    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] h-[180px] z-[5] pointer-events-none overflow-hidden">
+    <div className="absolute bottom-16 right-0 w-1/2 h-[160px] z-[5] pointer-events-none overflow-hidden">
       {/* Fade top edge */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
+      <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
       {/* Fade bottom edge */}
-      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#0B0F14] to-transparent z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#0B0F14] to-transparent z-10" />
 
       {/* Code container */}
       <div className="h-full flex items-center justify-center">
-        <div className="w-full px-4 font-mono text-[10px] sm:text-[11px] leading-[1.8] opacity-40">
+        <div className="w-full max-w-[420px] mx-auto px-4 font-mono text-[10px] sm:text-[11px] leading-[1.8] opacity-40">
           {CODE_LINES.slice(0, visibleLines + 1).map((line, i) => {
             if (line.text === "") return <div key={i} className="h-[1.8em]" />;
 
@@ -279,9 +279,6 @@ function RobotVisual() {
         className="relative z-10 max-h-[75vh] w-auto drop-shadow-2xl object-contain"
         draggable={false}
       />
-
-      {/* Code stream animation — scoped to robot width */}
-      <CodeStream />
 
       {/* Floating badges */}
       <FloatingBadge className="top-[15%] right-[5%] animate-float-slow">
@@ -601,6 +598,9 @@ export default function LandingLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 pt-20 pb-16 relative z-10">
         {children}
       </div>
+
+      {/* Code stream animation */}
+      <CodeStream />
 
       {/* Partner logos */}
       <PartnerLogos />
