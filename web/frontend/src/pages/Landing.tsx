@@ -273,7 +273,7 @@ function CodeStream() {
 /* ── Partner logos ── */
 function PartnerLogos() {
   const partners = ["NVIDIA", "Unitree", "MuJoCo", "PyTorch", "ROS 2", "Isaac Sim", "ONNX", "OpenAI Gym"];
-  const doubled = [...partners, ...partners];
+  const repeated = [...partners, ...partners, ...partners, ...partners];
 
   return (
     <div className="absolute bottom-0 left-0 right-0 border-t border-white/[0.04] bg-white/[0.01] overflow-hidden h-10">
@@ -284,7 +284,7 @@ function PartnerLogos() {
           width: "max-content",
         }}
       >
-        {doubled.map((name, i) => (
+        {repeated.map((name, i) => (
           <span
             key={i}
             className="text-gray-600 text-[11px] font-semibold tracking-[0.15em] uppercase select-none"
