@@ -6,6 +6,7 @@ import * as ort from "onnxruntime-web";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../../mujoco/jointMapping";
 import { loadMenagerieG1 } from "../../mujoco/loadMenagerieG1";
 import { qposVecGet, qposVecSet, skillKeyQposAddress } from "../../mujoco/qposToSkillAngles";
+import type { MuJoCoTelemetry } from "../../mujoco/mujocoTelemetry";
 
 export type MuJoCoG1ViewerProps = {
   jointRad: Record<string, number>;
@@ -15,8 +16,12 @@ export type MuJoCoG1ViewerProps = {
   freeStand?: boolean;
   /** When true (requires freeStand), legs auto-adjust to keep the robot balanced. */
   autoBalance?: boolean;
+  /** Perturbation force to apply this frame via mj_applyFT (cleared after one application). */
+  perturbForce?: { bodyId: number; force: [number, number, number]; point: [number, number, number] } | null;
   onReady?: (ctx: { model: unknown; data: unknown; mujoco: unknown }) => void;
   onError?: (e: Error) => void;
+  /** Telemetry ref — written every frame without triggering re-renders. */
+  telemetryRef?: React.MutableRefObject<MuJoCoTelemetry>;
 };
 
 type MuJoCoModel = {
@@ -414,11 +419,186 @@ function applyRLBalance(data: MuJoCoData): void {
   }
 }
 
+// ── Telemetry extraction ──────────────────────────────────────────────────────
+// Body names for feet — resolved once after model load via mj_name2id.
+let _leftFootBodyId = -1;
+let _rightFootBodyId = -1;
+
+function resolveFootBodyIds(mujoco: unknown, model: unknown): void {
+  const mj = mujoco as { mj_name2id: (m: unknown, type: number, name: string) => number };
+  const mjOBJ_BODY = 1; // mjtObj enum value for body
+  _leftFootBodyId = mj.mj_name2id(model, mjOBJ_BODY, "left_ankle_roll_link");
+  _rightFootBodyId = mj.mj_name2id(model, mjOBJ_BODY, "right_ankle_roll_link");
+}
+
+function extractTelemetry(
+  _mujoco: unknown,
+  model: MuJoCoModel,
+  data: MuJoCoData,
+  target: MuJoCoTelemetry
+): void {
+  const d = data as MuJoCoData & {
+    sensordata: unknown;
+    ncon: number;
+    contact: unknown;
+    time: number;
+    subtree_com: Float64Array;
+    energy: Float64Array;
+    actuator_force: unknown;
+    qfrc_applied: unknown;
+  };
+  const m = model as MuJoCoModel & {
+    nsensordata: number;
+    nv: number;
+    nbody: number;
+    opt: { timestep: number; gravity: Float64Array; iterations: number };
+  };
+
+  // ── IMU Sensors (sensordata: 12 values = 4 sensors × 3 axes) ──
+  const sd = d.sensordata;
+  try {
+    target.imu.torsoGyro.x = qposVecGet(sd, 0) ?? 0;
+    target.imu.torsoGyro.y = qposVecGet(sd, 1) ?? 0;
+    target.imu.torsoGyro.z = qposVecGet(sd, 2) ?? 0;
+    target.imu.torsoAccel.x = qposVecGet(sd, 3) ?? 0;
+    target.imu.torsoAccel.y = qposVecGet(sd, 4) ?? 0;
+    target.imu.torsoAccel.z = qposVecGet(sd, 5) ?? 0;
+    target.imu.pelvisGyro.x = qposVecGet(sd, 6) ?? 0;
+    target.imu.pelvisGyro.y = qposVecGet(sd, 7) ?? 0;
+    target.imu.pelvisGyro.z = qposVecGet(sd, 8) ?? 0;
+    target.imu.pelvisAccel.x = qposVecGet(sd, 9) ?? 0;
+    target.imu.pelvisAccel.y = qposVecGet(sd, 10) ?? 0;
+    target.imu.pelvisAccel.z = qposVecGet(sd, 11) ?? 0;
+  } catch { /* sensordata may not be exposed in all WASM builds */ }
+
+  // ── Pelvis state ──
+  const qpos = data.qpos;
+  const qvel = data.qvel;
+  target.pelvis.pos.x = qposVecGet(qpos, 0) ?? 0;
+  target.pelvis.pos.y = qposVecGet(qpos, 1) ?? 0;
+  target.pelvis.pos.z = qposVecGet(qpos, 2) ?? 0.793;
+  target.pelvis.height = target.pelvis.pos.z;
+
+  const qw = qposVecGet(qpos, 3) ?? 1;
+  const qx = qposVecGet(qpos, 4) ?? 0;
+  const qy = qposVecGet(qpos, 5) ?? 0;
+  const qz = qposVecGet(qpos, 6) ?? 0;
+  target.pelvis.quat.w = qw;
+  target.pelvis.quat.x = qx;
+  target.pelvis.quat.y = qy;
+  target.pelvis.quat.z = qz;
+
+  // Euler from quaternion
+  const sinP = 2 * (qw * qy - qz * qx);
+  const pitch = Math.asin(Math.max(-1, Math.min(1, sinP)));
+  const roll = Math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy));
+  const yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
+  const RAD2DEG = 180 / Math.PI;
+  target.pelvis.euler.pitch = pitch * RAD2DEG;
+  target.pelvis.euler.roll = roll * RAD2DEG;
+  target.pelvis.euler.yaw = yaw * RAD2DEG;
+
+  // Pelvis velocities
+  target.pelvis.linVel.x = qposVecGet(qvel, 0) ?? 0;
+  target.pelvis.linVel.y = qposVecGet(qvel, 1) ?? 0;
+  target.pelvis.linVel.z = qposVecGet(qvel, 2) ?? 0;
+  target.pelvis.angVel.x = qposVecGet(qvel, 3) ?? 0;
+  target.pelvis.angVel.y = qposVecGet(qvel, 4) ?? 0;
+  target.pelvis.angVel.z = qposVecGet(qvel, 5) ?? 0;
+
+  target.fallen = target.pelvis.height < FALL_HEIGHT;
+
+  // ── Contacts ──
+  try {
+    target.contacts.ncon = d.ncon ?? 0;
+    let leftContacts = 0;
+    let rightContacts = 0;
+    // Contact pairs: iterate and check if foot bodies are involved
+    // In WASM, contact info may be limited; we count based on ncon
+    if (_leftFootBodyId >= 0 || _rightFootBodyId >= 0) {
+      // Use xpos of feet to estimate ground contact (z < 0.02)
+      if (_leftFootBodyId >= 0) {
+        const lfz = data.xpos[_leftFootBodyId * 3 + 2];
+        leftContacts = lfz < 0.02 ? 1 : 0;
+      }
+      if (_rightFootBodyId >= 0) {
+        const rfz = data.xpos[_rightFootBodyId * 3 + 2];
+        rightContacts = rfz < 0.02 ? 1 : 0;
+      }
+    }
+    target.contacts.leftFootContacts = leftContacts;
+    target.contacts.rightFootContacts = rightContacts;
+    // Approximate foot forces from z-acceleration + weight distribution
+    const totalWeight = 40 * 9.81; // ~40kg G1 robot
+    const totalContacts = leftContacts + rightContacts;
+    target.contacts.leftFootForce = totalContacts > 0 ? totalWeight * (leftContacts / totalContacts) : 0;
+    target.contacts.rightFootForce = totalContacts > 0 ? totalWeight * (rightContacts / totalContacts) : 0;
+  } catch { /* contact data may not be accessible */ }
+
+  // ── Center of Mass ──
+  try {
+    if (d.subtree_com) {
+      // subtree_com[0] is world body CoM (whole-body)
+      target.com.pos.x = d.subtree_com[0];
+      target.com.pos.y = d.subtree_com[1];
+      target.com.pos.z = d.subtree_com[2];
+      target.com.groundProjection.x = d.subtree_com[0];
+      target.com.groundProjection.z = d.subtree_com[1]; // MuJoCo y → ground z
+    }
+  } catch { /* subtree_com may not be available */ }
+
+  // ── Energy ──
+  try {
+    if (d.energy) {
+      target.energy.potential = d.energy[0] ?? 0;
+      target.energy.kinetic = d.energy[1] ?? 0;
+      target.energy.total = target.energy.potential + target.energy.kinetic;
+    }
+  } catch { /* energy may need flag_energy in model options */ }
+
+  // ── Actuator Forces ──
+  try {
+    const af = d.actuator_force;
+    if (af) {
+      const forces: number[] = [];
+      let maxF = 0;
+      for (let i = 0; i < model.nu; i++) {
+        const f = qposVecGet(af, i) ?? 0;
+        forces.push(f);
+        if (Math.abs(f) > maxF) maxF = Math.abs(f);
+      }
+      target.actuators.forces = forces;
+      target.actuators.maxForce = maxF;
+      if (target.actuators.names.length === 0) {
+        target.actuators.names = [...SKILL_KEYS_IN_JOINT_MAP_ORDER];
+      }
+    }
+  } catch { /* actuator_force may not be exposed */ }
+
+  // ── Physics Settings ──
+  try {
+    if (m.opt) {
+      target.physics.timestep = m.opt.timestep ?? 0.002;
+      if (m.opt.gravity) {
+        target.physics.gravity.x = m.opt.gravity[0] ?? 0;
+        target.physics.gravity.y = m.opt.gravity[1] ?? 0;
+        target.physics.gravity.z = m.opt.gravity[2] ?? -9.81;
+      }
+      target.physics.iterations = m.opt.iterations ?? 100;
+    }
+  } catch { /* opt may not be directly readable */ }
+
+  // ── Sim time ──
+  target.simTime = d.time ?? 0;
+}
+
 function MuJoCoG1Scene({
   jointRad,
   physicsEnabled = false,
   freeStand = false,
   autoBalance = false,
+  perturbForce,
+  telemetryRef,
   onReady,
   onError,
 }: Omit<MuJoCoG1ViewerProps, never>) {
@@ -440,6 +620,9 @@ function MuJoCoG1Scene({
   freeStandRef.current = freeStand;
   const autoBalanceRef = useRef(autoBalance);
   autoBalanceRef.current = autoBalance;
+  const perturbForceRef = useRef(perturbForce);
+  perturbForceRef.current = perturbForce;
+  const telemetryRefProp = telemetryRef;
 
   const [initErr, setInitErr] = useState<Error | null>(null);
   const { invalidate } = useThree();
@@ -568,6 +751,7 @@ function MuJoCoG1Scene({
         };
 
         onReadyRef.current?.({ model, data, mujoco });
+        resolveFootBodyIds(mujoco, model);
         invalidate();
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
@@ -682,7 +866,36 @@ function MuJoCoG1Scene({
       }
       (mujoco as { mj_forward: (m: unknown, d: unknown) => void }).mj_forward(model, data);
     }
-  }, []);
+
+    // ── Apply perturbation force (if requested) ──
+    const pf = perturbForceRef.current;
+    if (pf && usePhysics) {
+      try {
+        const mj = mujoco as {
+          mj_applyFT: (
+            m: unknown, d: unknown,
+            fx: number, fy: number, fz: number,
+            tx: number, ty: number, tz: number,
+            px: number, py: number, pz: number,
+            body: number, target: unknown
+          ) => void;
+        };
+        const qfrc = (data as unknown as { qfrc_applied: unknown }).qfrc_applied;
+        mj.mj_applyFT(
+          model, data,
+          pf.force[0], pf.force[1], pf.force[2],
+          0, 0, 0,
+          pf.point[0], pf.point[1], pf.point[2],
+          pf.bodyId, qfrc
+        );
+      } catch { /* mj_applyFT may not be available in all WASM builds */ }
+    }
+
+    // ── Extract telemetry (ref-based, no re-renders) ──
+    if (telemetryRefProp?.current) {
+      extractTelemetry(mujoco, model, data, telemetryRefProp.current);
+    }
+  }, [telemetryRefProp]);
 
   useFrame(() => {
     const ctx = ctxRef.current;
@@ -709,16 +922,42 @@ function MuJoCoG1Scene({
       const qz = data.xquat[bodyId * 4 + 3];
       body.quaternion.set(qx, qz, -qy, qw);
     }
+
+    // ── Update CoM marker position ──
+    if (comMarkerRef.current && telemetryRefProp?.current) {
+      const com = telemetryRefProp.current.com.pos;
+      // MuJoCo→THREE.js coords: (x, z, -y)
+      comMarkerRef.current.position.set(com.x, com.z, -com.y);
+    }
   });
+
+  // ── CoM 3D marker ──
+  const comMarkerRef = useRef<THREE.Mesh>(null);
 
   if (initErr) {
     return null;
   }
 
-  return <primitive object={robotRoot} />;
+  return (
+    <>
+      <primitive object={robotRoot} />
+      {/* Center of Mass indicator */}
+      <mesh ref={comMarkerRef} visible={!!telemetryRefProp}>
+        <sphereGeometry args={[0.02, 12, 12]} />
+        <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.5} transparent opacity={0.7} />
+      </mesh>
+      {/* CoM ground projection line */}
+      {telemetryRefProp && (
+        <mesh position={[0, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.03, 0.04, 24]} />
+          <meshBasicMaterial color="#22c55e" transparent opacity={0.4} />
+        </mesh>
+      )}
+    </>
+  );
 }
 
-export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, autoBalance, onReady, onError }: MuJoCoG1ViewerProps) {
+export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, autoBalance, perturbForce, telemetryRef, onReady, onError }: MuJoCoG1ViewerProps) {
   const [loadErr, setLoadErr] = useState<Error | null>(null);
   const handleReady = useCallback(
     (ctx: { model: unknown; data: unknown; mujoco: unknown }) => {
@@ -774,7 +1013,7 @@ export default function MuJoCoG1Viewer({ jointRad, physicsEnabled, freeStand, au
         <ambientLight intensity={0.6} />
         <directionalLight castShadow position={[5, 5, 5]} intensity={1.2} shadow-mapSize={[1024, 1024]} />
         <directionalLight position={[-3, -3, 2]} intensity={0.4} />
-        <MuJoCoG1Scene jointRad={jointRad} physicsEnabled={physicsEnabled} freeStand={freeStand} autoBalance={autoBalance} onReady={handleReady} onError={handleError} />
+        <MuJoCoG1Scene jointRad={jointRad} physicsEnabled={physicsEnabled} freeStand={freeStand} autoBalance={autoBalance} perturbForce={perturbForce} telemetryRef={telemetryRef} onReady={handleReady} onError={handleError} />
         <OrbitControls
           makeDefault
           enableDamping

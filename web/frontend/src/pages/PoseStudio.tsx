@@ -6,6 +6,17 @@ import { MotionCapturePanel } from "../components/MotionCapturePanel";
 import { MotionPipelinePanel } from "../components/MotionPipelinePanel";
 import { PoseTimeline } from "../components/pose-timeline/PoseTimeline";
 import MuJoCoG1Viewer from "../components/mujoco/MuJoCoG1Viewer";
+import MuJoCoTelemetryPanel from "../components/mujoco/MuJoCoTelemetryPanel";
+import { createEmptyTelemetry, type MuJoCoTelemetry } from "../mujoco/mujocoTelemetry";
+import {
+  captureKeyframe,
+  restoreKeyframe,
+  loadKeyframesFromStorage,
+  saveKeyframesToStorage,
+  type MuJoCoKeyframe,
+} from "../mujoco/mujocoKeyframes";
+import { solveIK, resolveBodyId } from "../mujoco/mujocoIK";
+import { MuJoCoStateHistory, computeInverseDynamics } from "../mujoco/mujocoStateHistory";
 import { getJoints, savePoseDraft } from "../api/client";
 import { useApiMeta } from "../hooks/useApiMeta";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../mujoco/jointMapping";
@@ -78,10 +89,32 @@ export default function PoseStudio() {
   const [autoBalance, setAutoBalance] = useState(true);
   const [dancePlaying, setDancePlaying] = useState(false);
   const danceCancelRef = useRef(false);
+
+  // ── Telemetry (ref-based, no re-renders from sim loop) ──
+  const telemetryRef = useRef<MuJoCoTelemetry>(createEmptyTelemetry());
+  const [perturbForce, setPerturbForce] = useState<{
+    bodyId: number;
+    force: [number, number, number];
+    point: [number, number, number];
+  } | null>(null);
+
+  // ── MuJoCo context ref (for keyframes / direct state access) ──
+  const mujocoCtxRef = useRef<{
+    model: unknown;
+    data: unknown;
+    mujoco: unknown;
+  } | null>(null);
+  const [stateKeyframes, setStateKeyframes] = useState<MuJoCoKeyframe[]>(() => loadKeyframesFromStorage());
+
+  // ── State history (undo/redo) ──
+  const stateHistoryRef = useRef(new MuJoCoStateHistory(50));
+  const [historyCounter, setHistoryCounter] = useState(0);
+  void historyCounter; // used to trigger re-render for canUndo/canRedo
+  const [inverseDynForces, setInverseDynForces] = useState<number[] | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
   const [draftName, setDraftName] = useState("");
   const [activeDanceName, setActiveDanceName] = useState<string | null>(null);
-  const [panelTab, setPanelTab] = useState<"joints" | "timeline" | "capture">("joints");
+  const [panelTab, setPanelTab] = useState<"joints" | "timeline" | "capture" | "telemetry">("joints");
 
   useEffect(() => {
     wasmJointRadRef.current = wasmJointRad;
@@ -99,6 +132,38 @@ export default function PoseStudio() {
         setLoadError(null);
       })
       .catch((e) => setLoadError(String(e)));
+  }, []);
+
+  // ── Undo/Redo keyboard shortcut ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      const ctx = mujocoCtxRef.current;
+      if (!ctx) return;
+      const m = ctx.model as { nq: number; nv: number; nu: number };
+      const d = ctx.data as { qpos: unknown; qvel: unknown; ctrl: unknown };
+      const mj = ctx.mujoco as { mj_forward: (m2: unknown, d2: unknown) => void };
+      const hist = stateHistoryRef.current;
+
+      if (e.shiftKey) {
+        // Redo
+        if (hist.redo(m, d, mj, ctx.model)) {
+          const pose = qposToSkillJointAngles(ctx.model as never, d as { qpos: Float64Array });
+          setWasmJointRad(pose);
+          setHistoryCounter((c) => c + 1);
+        }
+      } else {
+        // Undo
+        if (hist.undo(m, d, mj, ctx.model)) {
+          const pose = qposToSkillJointAngles(ctx.model as never, d as { qpos: Float64Array });
+          setWasmJointRad(pose);
+          setHistoryCounter((c) => c + 1);
+        }
+      }
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   const mergedForExport = useMemo(() => {
@@ -475,7 +540,8 @@ export default function PoseStudio() {
   );
 
   const onWasmReady = useCallback(
-    ({ model, data }: { model: unknown; data: unknown }) => {
+    ({ model, data, mujoco }: { model: unknown; data: unknown; mujoco: unknown }) => {
+      mujocoCtxRef.current = { model, data, mujoco };
       const ranges: Record<string, { min: number; max: number }> = {};
       for (let i = 0; i < 29; i++) {
         const sk = effectiveNames[String(i)];
@@ -488,6 +554,11 @@ export default function PoseStudio() {
       setWasmJointRad(initialPose);
       setWasmReady(true);
       setWasmViewerError(null);
+      // Push initial state to history
+      stateHistoryRef.current.push(
+        model as { nq: number; nv: number; nu: number },
+        data as { qpos: unknown; qvel: unknown; ctrl: unknown }
+      );
       setNlaTimeline(
         migrateSavedPosesToNlaTimeline([captureFullJointAnglesSkillKeys(initialPose)], {
           stepSec: KEYFRAME_TIMESTAMP_STEP_S,
@@ -534,6 +605,8 @@ export default function PoseStudio() {
               physicsEnabled={physicsEnabled}
               freeStand={freeStand}
               autoBalance={autoBalance}
+              perturbForce={perturbForce}
+              telemetryRef={telemetryRef}
               onReady={onWasmReady}
               onError={(e) => {
                 setWasmViewerError(e.message);
@@ -669,6 +742,15 @@ export default function PoseStudio() {
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
               <span>Capture</span>
+            </button>
+            <button
+              type="button"
+              className={`ps-panel-tab${panelTab === "telemetry" ? " ps-panel-tab--active" : ""}`}
+              onClick={() => setPanelTab("telemetry")}
+              title="Telemetry"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Telemetry</span>
             </button>
           </div>
 
@@ -863,6 +945,116 @@ export default function PoseStudio() {
                 onLandmarksArtifactChange={setLandmarksArtifact}
               />
             </>
+          )}
+
+          {/* ── Telemetry Tab ── */}
+          {panelTab === "telemetry" && (
+            <div className="ps-card" style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              <MuJoCoTelemetryPanel
+                telemetryRef={telemetryRef}
+                onPushRobot={physicsEnabled && freeStand ? (dir) => {
+                  const PUSH_FORCE = 120; // Newtons
+                  const forceMap: Record<string, [number, number, number]> = {
+                    forward: [PUSH_FORCE, 0, 0],
+                    backward: [-PUSH_FORCE, 0, 0],
+                    left: [0, PUSH_FORCE, 0],
+                    right: [0, -PUSH_FORCE, 0],
+                  };
+                  setPerturbForce({
+                    bodyId: 1, // pelvis
+                    force: forceMap[dir],
+                    point: [0, 0, 0.793],
+                  });
+                  setTimeout(() => setPerturbForce(null), 200);
+                } : undefined}
+                keyframes={stateKeyframes.map(kf => ({ id: kf.id, label: kf.label, simTime: kf.simTime }))}
+                onSaveKeyframe={physicsEnabled ? () => {
+                  const ctx = mujocoCtxRef.current;
+                  if (!ctx) return;
+                  const m = ctx.model as { nq: number; nv: number; nu: number };
+                  const d = ctx.data as { qpos: unknown; qvel: unknown; ctrl: unknown; time?: number };
+                  const label = `State #${stateKeyframes.length + 1}`;
+                  const kf = captureKeyframe(m, d, label);
+                  const next = [...stateKeyframes, kf];
+                  setStateKeyframes(next);
+                  saveKeyframesToStorage(next);
+                } : undefined}
+                onRestoreKeyframe={(id) => {
+                  const ctx = mujocoCtxRef.current;
+                  if (!ctx) return;
+                  const kf = stateKeyframes.find(k => k.id === id);
+                  if (!kf) return;
+                  const m = ctx.model as { nq: number; nv: number; nu: number };
+                  const d = ctx.data as { qpos: unknown; qvel: unknown; ctrl: unknown };
+                  const mj = ctx.mujoco as { mj_forward: (m: unknown, d: unknown) => void };
+                  restoreKeyframe(m, d, mj, ctx.model, kf);
+                  // Sync joint angles to UI
+                  const pose = qposToSkillJointAngles(ctx.model as never, d as { qpos: Float64Array });
+                  setWasmJointRad(pose);
+                }}
+                onDeleteKeyframe={(id) => {
+                  const next = stateKeyframes.filter(k => k.id !== id);
+                  setStateKeyframes(next);
+                  saveKeyframesToStorage(next);
+                }}
+                onIKSolve={!physicsEnabled ? (bodyName, offset) => {
+                  const ctx = mujocoCtxRef.current;
+                  if (!ctx) return;
+                  const bodyId = resolveBodyId(ctx.mujoco, ctx.model, bodyName);
+                  if (bodyId < 0) return;
+                  const d = ctx.data as { xpos: Float64Array };
+                  const curX = d.xpos[bodyId * 3 + 0];
+                  const curY = d.xpos[bodyId * 3 + 1];
+                  const curZ = d.xpos[bodyId * 3 + 2];
+                  // Push state before IK
+                  stateHistoryRef.current.push(
+                    ctx.model as { nq: number; nv: number; nu: number },
+                    ctx.data as { qpos: unknown; qvel: unknown; ctrl: unknown }
+                  );
+                  solveIK(ctx.mujoco, ctx.model, ctx.data, {
+                    bodyId,
+                    targetPos: [curX + offset[0], curY + offset[1], curZ + offset[2]],
+                  });
+                  // Sync updated qpos back to UI
+                  const pose = qposToSkillJointAngles(ctx.model as never, ctx.data as { qpos: Float64Array });
+                  setWasmJointRad(pose);
+                  setHistoryCounter((c) => c + 1);
+                } : undefined}
+                canUndo={stateHistoryRef.current.canUndo}
+                canRedo={stateHistoryRef.current.canRedo}
+                onUndo={() => {
+                  const ctx = mujocoCtxRef.current;
+                  if (!ctx) return;
+                  const m = ctx.model as { nq: number; nv: number; nu: number };
+                  const d = ctx.data as { qpos: unknown; qvel: unknown; ctrl: unknown };
+                  const mj = ctx.mujoco as { mj_forward: (m2: unknown, d2: unknown) => void };
+                  if (stateHistoryRef.current.undo(m, d, mj, ctx.model)) {
+                    const pose = qposToSkillJointAngles(ctx.model as never, d as { qpos: Float64Array });
+                    setWasmJointRad(pose);
+                    setHistoryCounter((c) => c + 1);
+                  }
+                }}
+                onRedo={() => {
+                  const ctx = mujocoCtxRef.current;
+                  if (!ctx) return;
+                  const m = ctx.model as { nq: number; nv: number; nu: number };
+                  const d = ctx.data as { qpos: unknown; qvel: unknown; ctrl: unknown };
+                  const mj = ctx.mujoco as { mj_forward: (m2: unknown, d2: unknown) => void };
+                  if (stateHistoryRef.current.redo(m, d, mj, ctx.model)) {
+                    const pose = qposToSkillJointAngles(ctx.model as never, d as { qpos: Float64Array });
+                    setWasmJointRad(pose);
+                    setHistoryCounter((c) => c + 1);
+                  }
+                }}
+                inverseDynForces={inverseDynForces}
+                onComputeInverseDyn={() => {
+                  const ctx = mujocoCtxRef.current;
+                  if (!ctx) return;
+                  const forces = computeInverseDynamics(ctx.mujoco, ctx.model, ctx.data);
+                  setInverseDynForces(forces);
+                }}
+              />
+            </div>
           )}
 
           {/* Errors */}

@@ -10,23 +10,8 @@ let mujocoSingleton: Promise<MujocoModule> | null = null;
 
 export function getMujocoModule(): Promise<MujocoModule> {
   if (!mujocoSingleton) {
-    // Suppress noisy Emscripten "still waiting on run dependencies" messages
-    const origError = console.error;
-    // eslint-disable-next-line no-console
-    console.error = (...args: unknown[]) => {
-      const msg = typeof args[0] === "string" ? args[0] : "";
-      if (
-        msg.includes("still waiting on run dependencies") ||
-        msg.includes("dependency:") ||
-        msg.includes("(end of list)")
-      )
-        return;
-      origError.apply(console, args);
-    };
     mujocoSingleton = loadMujocoModule({
       locateFile: (file: string) => (file.endsWith(".wasm") ? mujocoWasmUrl : file),
-    }).finally(() => {
-      console.error = origError;
     });
   }
   return mujocoSingleton;

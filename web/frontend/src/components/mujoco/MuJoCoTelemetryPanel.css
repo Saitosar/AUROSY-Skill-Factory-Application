@@ -1,0 +1,277 @@
+/* ── MuJoCo Telemetry Panel ────────────────────────────────────────────── */
+.telem-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  overflow-y: auto;
+  max-height: 100%;
+  padding: 4px 0;
+}
+
+.telem-section {
+  background: rgba(30, 41, 59, 0.45);
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.telem-section[open] {
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+.telem-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.telem-section-title:hover {
+  color: #e2e8f0;
+}
+
+.telem-section-title svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.telem-section-body {
+  padding: 2px 10px 8px;
+}
+
+.telem-sub-title {
+  font-size: 0.65rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 4px 0 2px;
+}
+
+.telem-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 0;
+}
+
+.telem-label {
+  flex: 0 0 52px;
+  color: #94a3b8;
+  font-size: 0.68rem;
+}
+
+.telem-val {
+  flex: 0 0 52px;
+  text-align: right;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+.telem-val--wide {
+  flex: 1;
+}
+
+.telem-unit {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.62rem;
+  margin-left: 2px;
+}
+
+/* ── Contact ── */
+.telem-contact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.telem-contact-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #334155;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.telem-contact-dot--on {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+/* ── Force bars ── */
+.telem-force-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 0;
+}
+
+.telem-force-name {
+  flex: 0 0 80px;
+  color: #94a3b8;
+  font-size: 0.62rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telem-force-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.telem-force-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.1s;
+}
+
+.telem-force-val {
+  flex: 0 0 36px;
+  text-align: right;
+  color: #e2e8f0;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Alerts ── */
+.telem-alert {
+  padding: 4px 8px;
+  margin-top: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.7rem;
+  animation: telem-blink 1s infinite;
+}
+
+@keyframes telem-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Perturbation ── */
+.telem-perturb {
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.telem-perturb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  padding: 6px 10px;
+  justify-items: center;
+}
+
+.telem-perturb-grid > button:nth-child(1) {
+  grid-column: 2;
+}
+
+.telem-push-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.6);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.telem-push-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  color: #e2e8f0;
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.telem-push-btn:active {
+  background: rgba(167, 139, 250, 0.2);
+  color: #a78bfa;
+  transform: scale(0.92);
+}
+
+/* ── Keyframe rows ── */
+.telem-kf-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.telem-kf-label {
+  flex: 1;
+  color: #e2e8f0;
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telem-kf-time {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.telem-kf-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.telem-kf-btn:hover {
+  background: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+}
+
+.telem-kf-btn--del:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+/* ── IK rows ── */
+.telem-ik-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 0;
+}
+
+.telem-ik-row .telem-kf-btn {
+  font-size: 0.55rem;
+  width: 22px;
+  height: 18px;
+  font-family: inherit;
+}
