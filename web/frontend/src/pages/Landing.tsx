@@ -206,7 +206,7 @@ function CodeStream() {
 
       {/* Code container */}
       <div className="h-full flex items-start justify-start pt-1">
-        <div className="w-full px-2 font-mono text-[10px] leading-[1.5] opacity-35">
+        <div className="w-full px-2 font-mono text-[10px] leading-[1.5] opacity-60">
           {CODE_LINES.slice(0, visibleLines + 1).map((line, i) => {
             if (line.text === "") return <div key={i} className="h-[1.8em]" />;
 
