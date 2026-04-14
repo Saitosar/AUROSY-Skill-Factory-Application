@@ -15,6 +15,7 @@ import Jobs from "./pages/Jobs";
 import Packages from "./pages/Packages";
 import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
+import AdminPanel from "./pages/AdminPanel";
 
 /* ── Protected Route Wrapper ── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -121,6 +122,11 @@ export default function App() {
       <Route path="/company" element={<LandingLayout><LandingCompany /></LandingLayout>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/panel" element={
+        <ProtectedRoute>
+          <AdminPanel />
+        </ProtectedRoute>
+      } />
 
       {/* ── Protected: App pages (with topbar) ── */}
       <Route path="/app/*" element={
@@ -149,6 +155,17 @@ export default function App() {
 function AppShell() {
   const { t } = useTranslation();
 
+  const navItems = [
+    { to: "/app", label: t("nav.home"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, end: true },
+    { to: "/app/authoring", label: t("nav.authoring"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
+    { to: "/app/pose", label: t("nav.poseStudio"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="16" x2="8" y2="22"/><line x1="12" y1="16" x2="16" y2="22"/></svg> },
+    { to: "/app/scenarios", label: t("nav.scenarios"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
+    { to: "/app/pipeline", label: t("nav.pipeline"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
+    { to: "/app/jobs", label: t("nav.jobs"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg> },
+    { to: "/app/packages", label: t("nav.packages"), icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> },
+    { to: "/app/billing", label: "Billing", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
+  ];
+
   return (
     <div className="layout">
       {/* ── Top Navigation Bar ── */}
@@ -157,30 +174,17 @@ function AppShell() {
           <img src="/logo.svg" alt="AUROSY" style={{ height: 32, width: "auto" }} />
         </NavLink>
         <nav className="topbar-nav">
-          <NavLink end to="/app" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.home")}
-          </NavLink>
-          <NavLink to="/app/authoring" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.authoring")}
-          </NavLink>
-          <NavLink to="/app/pose" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.poseStudio")}
-          </NavLink>
-          <NavLink to="/app/scenarios" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.scenarios")}
-          </NavLink>
-          <NavLink to="/app/pipeline" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.pipeline")}
-          </NavLink>
-          <NavLink to="/app/jobs" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.jobs")}
-          </NavLink>
-          <NavLink to="/app/packages" className={({ isActive }) => (isActive ? "active" : "")}>
-            {t("nav.packages")}
-          </NavLink>
-          <NavLink to="/app/billing" className={({ isActive }) => (isActive ? "active" : "")}>
-            Billing
-          </NavLink>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              end={item.end}
+              to={item.to}
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
         <div className="topbar-right">
           <UserMenu />

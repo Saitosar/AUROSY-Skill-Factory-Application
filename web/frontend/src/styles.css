@@ -142,6 +142,7 @@ select:focus-visible,
 .topbar-nav a {
   display: flex;
   align-items: center;
+  gap: 6px;
   padding: 6px 12px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -149,17 +150,33 @@ select:focus-visible,
   border-radius: 8px;
   color: var(--text-muted);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+
+.topbar-nav a svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s;
 }
 
 .topbar-nav a:hover {
-  background: rgba(148, 163, 184, 0.12);
-  color: var(--text-primary);
+  background: rgba(168, 85, 247, 0.1);
+  color: #c4b5fd;
+  transform: translateY(-1px);
+}
+
+.topbar-nav a:hover svg {
+  opacity: 1;
 }
 
 .topbar-nav a.active {
-  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
-  color: var(--color-primary);
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+.topbar-nav a.active svg {
+  opacity: 1;
 }
 
 .topbar-right {
@@ -178,17 +195,19 @@ select:focus-visible,
   height: 34px;
   border-radius: 8px;
   color: var(--text-muted);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
 .topbar-icon-link:hover {
-  background: rgba(148, 163, 184, 0.12);
-  color: var(--text-primary);
+  background: rgba(168, 85, 247, 0.1);
+  color: #c4b5fd;
+  transform: translateY(-1px);
 }
 
 .topbar-icon-link.active {
-  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
-  color: var(--color-primary);
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.15);
 }
 
 .topbar-icon-link svg {
