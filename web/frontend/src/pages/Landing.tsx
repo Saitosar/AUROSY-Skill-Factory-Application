@@ -42,17 +42,8 @@ function UserButton() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  if (!user) {
-    return (
-      <button
-        className="text-gray-500 hover:text-white transition-colors"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-      </button>
-    );
+  if (!user || user.role === 'admin') {
+    return null;
   }
 
   const displayName = user.name || user.email || "User";
@@ -104,6 +95,8 @@ const NAV_ITEMS = [
 ];
 
 function LandingNav({ activePath }: { activePath: string }) {
+  const { user } = useAuth();
+  const isRegularUser = user && user.role !== 'admin';
   return (
     <header className="absolute top-0 left-0 right-0 z-40 px-6 lg:px-12">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between h-20">
@@ -163,39 +156,49 @@ function LandingNav({ activePath }: { activePath: string }) {
             </svg>
           </button>
 
-          {/* User icon */}
-          <UserButton />
+          {isRegularUser ? (
+            /* Authenticated: avatar + name + dropdown */
+            <UserButton />
+          ) : (
+            <>
+              {/* Guest: user icon + separator + Start Building */}
+              <button className="text-gray-500 hover:text-white transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </button>
 
-          {/* Separator */}
-          <div className="w-px h-6 bg-white/10" />
+              <div className="w-px h-6 bg-white/10" />
 
-          {/* Start Building */}
-          <Link
-            to="/pricing"
-            className="text-sm font-bold tracking-tight transition-all no-underline"
-            style={{
-              backgroundImage: "linear-gradient(90deg, #a78bfa, #a78bfa)",
-              backgroundSize: "100% 100%",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              transition: "all 0.4s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
-              e.currentTarget.style.backgroundSize = "200% 100%";
-              e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
-              e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(167,139,250,0.5))";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #a78bfa, #a78bfa)";
-              e.currentTarget.style.backgroundSize = "100% 100%";
-              e.currentTarget.style.animation = "none";
-              e.currentTarget.style.filter = "none";
-            }}
-          >
-            Start Building
-          </Link>
+              <Link
+                to="/pricing"
+                className="text-sm font-bold tracking-tight transition-all no-underline"
+                style={{
+                  backgroundImage: "linear-gradient(90deg, #a78bfa, #a78bfa)",
+                  backgroundSize: "100% 100%",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  transition: "all 0.4s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+                  e.currentTarget.style.backgroundSize = "200% 100%";
+                  e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+                  e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(167,139,250,0.5))";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #a78bfa, #a78bfa)";
+                  e.currentTarget.style.backgroundSize = "100% 100%";
+                  e.currentTarget.style.animation = "none";
+                  e.currentTarget.style.filter = "none";
+                }}
+              >
+                Start Building
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
