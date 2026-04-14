@@ -44,20 +44,12 @@ function UserButton() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-3">
-        <Link
-          to="/login"
-          className="text-sm text-gray-300 hover:text-white transition-colors"
-        >
-          Sign In
-        </Link>
-        <Link
-          to="/register"
-          className="text-sm px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 text-white hover:from-purple-500 hover:to-purple-400 transition-all"
-        >
-          Get Started
-        </Link>
-      </div>
+      <Link
+        to="/pricing"
+        className="text-sm px-5 py-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium hover:from-purple-500 hover:to-purple-400 transition-all"
+      >
+        Start Building
+      </Link>
     );
   }
 
@@ -327,9 +319,9 @@ export function LandingPricing() {
   return (
     <PageTransition direction="right">
       <div className="flex h-full items-center px-6 lg:px-12 xl:px-20">
-        <div className="max-w-[1100px] mx-auto w-full flex flex-col md:flex-row gap-6 items-start">
+        <div className="max-w-[1000px] mx-auto w-full">
           {/* Plans */}
-          <div className="flex-1 grid md:grid-cols-3 gap-6 w-full">
+          <div className="grid md:grid-cols-3 gap-6 w-full">
             {PLANS.map((plan) => (
               <div
                 key={plan.name}
@@ -337,7 +329,7 @@ export function LandingPricing() {
                   plan.highlight
                     ? "bg-purple-500/10 border-purple-500/30 shadow-xl shadow-purple-500/10"
                     : "bg-white/[0.03] border-white/[0.06] hover:border-white/10"
-                } ${selectedPlan === plan.name ? "ring-2 ring-purple-500" : ""}`}
+                }`}
               >
                 <h3 className="text-lg font-semibold text-white mb-1">{plan.name}</h3>
                 <div className="text-3xl font-bold text-white mb-6">
@@ -364,76 +356,79 @@ export function LandingPricing() {
               </div>
             ))}
           </div>
-
-          {/* Inline registration form */}
-          {selectedPlan && !user && (
-            <div className="w-full md:w-[340px] shrink-0">
-              <div className="bg-[#161a22] rounded-2xl p-6 border border-white/10 shadow-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-white font-semibold">Sign up — {selectedPlan}</h3>
-                  <button onClick={() => setSelectedPlan(null)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                  </button>
-                </div>
-                <div className="mb-4 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <p className="text-purple-300 text-xs font-medium flex items-center gap-1.5">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-                    20-day free trial included
-                  </p>
-                  <p className="text-gray-400 text-[11px] mt-0.5">No credit card required. After trial you'll stay on the Free plan.</p>
-                </div>
-                <form onSubmit={handleRegister} className="space-y-3">
-                  {regError && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-red-400 text-xs">{regError}</div>
-                  )}
-                  <input
-                    type="text"
-                    value={regForm.name}
-                    onChange={(e) => setRegForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                    placeholder="Name"
-                  />
-                  <input
-                    type="email"
-                    value={regForm.email}
-                    onChange={(e) => setRegForm((f) => ({ ...f, email: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                    placeholder="Email"
-                  />
-                  <input
-                    type="password"
-                    value={regForm.password}
-                    onChange={(e) => setRegForm((f) => ({ ...f, password: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                    placeholder="Password"
-                  />
-                  <input
-                    type="password"
-                    value={regForm.confirmPassword}
-                    onChange={(e) => setRegForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                    placeholder="Confirm password"
-                  />
-                  <button
-                    type="submit"
-                    disabled={regLoading}
-                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {regLoading ? "Creating..." : "Create Account"}
-                  </button>
-                </form>
-                <p className="text-center mt-3 text-xs text-gray-500">
-                  Already have an account?{" "}
-                  <Link to="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Registration modal */}
+      {selectedPlan && !user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedPlan(null)} />
+          {/* Modal */}
+          <div className="relative w-full max-w-md mx-4 bg-[#161a22] rounded-2xl p-8 border border-white/10 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white text-lg font-semibold">Sign up — {selectedPlan}</h3>
+              <button onClick={() => setSelectedPlan(null)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="mb-5 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <p className="text-purple-300 text-sm font-medium flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                20-day free trial included
+              </p>
+              <p className="text-gray-400 text-xs mt-1">Full Pro access. No credit card required. After trial you'll stay on the Free plan.</p>
+            </div>
+            <form onSubmit={handleRegister} className="space-y-4">
+              {regError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{regError}</div>
+              )}
+              <input
+                type="text"
+                value={regForm.name}
+                onChange={(e) => setRegForm((f) => ({ ...f, name: e.target.value }))}
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Name"
+              />
+              <input
+                type="email"
+                value={regForm.email}
+                onChange={(e) => setRegForm((f) => ({ ...f, email: e.target.value }))}
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Email"
+              />
+              <input
+                type="password"
+                value={regForm.password}
+                onChange={(e) => setRegForm((f) => ({ ...f, password: e.target.value }))}
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Password"
+              />
+              <input
+                type="password"
+                value={regForm.confirmPassword}
+                onChange={(e) => setRegForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                required
+                className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="Confirm password"
+              />
+              <button
+                type="submit"
+                disabled={regLoading}
+                className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
+              >
+                {regLoading ? "Creating account..." : "Create Account & Start Trial"}
+              </button>
+            </form>
+            <p className="text-center mt-4 text-sm text-gray-500">
+              Already have an account?{" "}
+              <Link to="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
+            </p>
+          </div>
+        </div>
+      )}
     </PageTransition>
   );
 }
