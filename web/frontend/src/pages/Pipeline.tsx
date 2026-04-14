@@ -90,6 +90,7 @@ export default function Pipeline() {
 
   const cliMissingInPath =
     cli &&
+    meta?.sdk_python_root &&
     (cli.preprocess === null || cli.playback === null || cli.train === null);
 
   const dash = t("common.dash");
@@ -305,7 +306,7 @@ export default function Pipeline() {
           />
         </p>
       )}
-      {meta && (
+      {meta && meta.sdk_python_root && (
         <p className="muted">
           {t("pipeline.sdkLabel")} <code>{meta.sdk_python_root}</code>
           <br />
@@ -314,7 +315,7 @@ export default function Pipeline() {
         </p>
       )}
 
-      {cliErr && (
+      {cliErr && meta?.sdk_python_root && (
         <p className="muted err" role="status">
           <Trans
             i18nKey="pipeline.cliDetectErr"
@@ -323,7 +324,7 @@ export default function Pipeline() {
           />
         </p>
       )}
-      {cli && !cliErr && (
+      {cli && !cliErr && meta?.sdk_python_root && (
         <p className="muted">
           <Trans
             i18nKey="pipeline.cliInPath"
