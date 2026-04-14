@@ -296,7 +296,7 @@ function UsersSection({ token, showToast, onOpenClient }: { token: string; showT
                         <button onClick={() => setEditUser(u)} disabled={actionLoading === u.id} className="p-2 rounded-lg text-gray-400 hover:text-purple-300 hover:bg-purple-500/10 transition-all cursor-pointer disabled:opacity-50" title="Edit user">{Icons.edit}</button>
                         <button onClick={() => setPwUser(u)} className="p-2 rounded-lg text-gray-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer" title="Change password">{Icons.key}</button>
                         <button onClick={() => updateUser(u.id, { plan: "trial", trial_days: 20 })} disabled={actionLoading === u.id} className="p-2 rounded-lg text-gray-400 hover:text-purple-300 hover:bg-purple-500/10 transition-all cursor-pointer disabled:opacity-50" title="Give 20-day trial">{Icons.clock}</button>
-                        <button onClick={() => updateUser(u.id, { plan: "pro" })} disabled={actionLoading === u.id} className="p-2 rounded-lg text-gray-400 hover:text-green-300 hover:bg-green-500/10 transition-all cursor-pointer disabled:opacity-50" title="Set Pro">{Icons.star}</button>
+
                         <button onClick={() => deleteUser(u.id, u.email)} disabled={actionLoading === u.id} className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer disabled:opacity-50" title="Delete user">{Icons.trash}</button>
                       </div>
                     </td>
@@ -332,26 +332,50 @@ function UsersSection({ token, showToast, onOpenClient }: { token: string; showT
 
 /* ── Settings Section ── */
 function SettingsSection({ token, showToast }: { token: string; showToast: (m: string) => void }) {
-  const { user, updateUser } = useAuth();
-  const [name, setName] = useState(user?.name || "");
+  const [user, setUser] = useState<{ id: number; email: string; name: string; role: string } | null>(null);
+  const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [changingPw, setChangingPw] = useState(false);
 
+  // Fetch admin user on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/auth/me"), { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        setUser(data);
+        setName(data.name || "");
+      } catch { /* ignore */ }
+    })();
+  }, [token]);
+
   const saveName = async () => {
+    if (!user) return;
     setSaving(true);
-    try { await updateUser({ name }); showToast("Name updated"); }
+    try {
+      const res = await fetch(apiUrl("/api/auth/me"), {
+        method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      const updated = await res.json();
+      setUser(updated);
+      showToast("Name updated");
+    }
     catch (e: any) { showToast(`Error: ${e.message}`); }
     finally { setSaving(false); }
   };
 
   const changeMyPassword = async () => {
+    if (!user) return;
     if (newPw.length < 6) { showToast("Password must be at least 6 characters"); return; }
     if (newPw !== confirmPw) { showToast("Passwords don't match"); return; }
     setChangingPw(true);
     try {
-      const res = await fetch(apiUrl(`/api/admin/users/${user!.id}/password`), {
+      const res = await fetch(apiUrl(`/api/admin/users/${user.id}/password`), {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ new_password: newPw }),
       });
@@ -470,7 +494,7 @@ function SettingsSection({ token, showToast }: { token: string; showToast: (m: s
                 <div className="flex items-center gap-2">
                   {roleBadge(m.role)}
                   <button onClick={() => setPwTeamUser(m)} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer" title="Change password">{Icons.key}</button>
-                  {m.id !== user!.id && (
+                  {m.id !== user?.id && (
                     <button onClick={() => deleteTeamUser(m.id, m.email)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer" title="Remove">{Icons.trash}</button>
                   )}
                 </div>
@@ -584,6 +608,33 @@ function CreateUserForm({ token, onCreated, onError }: { token: string; onCreate
   );
 }
 
+/* ── Client Edit Form (no role field) ── */
+function ClientEditForm({ user, onSave }: { user: AdminUser; onSave: (data: Record<string, any>) => Promise<void> }) {
+  const [name, setName] = useState(user.name);
+  const [plan, setPlan] = useState(user.plan || "free");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => { setSaving(true); await onSave({ name, plan }); setSaving(false); };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Name</label>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors" />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">Plan</label>
+        <select value={plan} onChange={(e) => setPlan(e.target.value)} className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500 transition-colors cursor-pointer">
+          {PLANS.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+        </select>
+      </div>
+      <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed">
+        {saving ? "Saving..." : "Save Changes"}
+      </button>
+    </div>
+  );
+}
+
 /* ── Client Profile ── */
 function ClientProfile({ clientId, token, showToast, onBack }: { clientId: number; token: string; showToast: (m: string) => void; onBack: () => void }) {
   const [client, setClient] = useState<ClientDetail | null>(null);
@@ -655,13 +706,13 @@ function ClientProfile({ clientId, token, showToast, onBack }: { clientId: numbe
 
   return (
     <>
-      {/* Back button + header */}
+      {/* Back button */}
       <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-6 transition-colors cursor-pointer group">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:-translate-x-0.5 transition-transform"><polyline points="15 18 9 12 15 6"/></svg>
         Back to Clients
       </button>
 
-      {/* Profile Header */}
+      {/* Profile Header Card */}
       <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6 mb-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="flex items-center gap-5">
@@ -673,56 +724,84 @@ function ClientProfile({ clientId, token, showToast, onBack }: { clientId: numbe
               <p className="text-gray-400 text-sm mt-0.5">{client.email}</p>
               <div className="flex items-center gap-2 mt-2">
                 {planBadge(client.plan)}
-                {client.user_type && client.user_type !== "individual" && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border bg-blue-500/15 text-blue-300 border-blue-500/25">{client.user_type}</span>
+                {daysLeft !== null && daysLeft > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border bg-green-500/15 text-green-300 border-green-500/25">
+                    {daysLeft}d left
+                  </span>
                 )}
-                {client.industry && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border bg-gray-500/15 text-gray-300 border-gray-500/25">{client.industry}</span>
+                {daysLeft !== null && daysLeft <= 0 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border bg-red-500/15 text-red-300 border-red-500/25">
+                    Expired
+                  </span>
                 )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setEditUser(client)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer">{Icons.edit} Edit</button>
-            <button onClick={() => setPwUser(client)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer">{Icons.key} Password</button>
+            <button onClick={() => setEditUser(client)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer">
+              {Icons.edit} <span>Edit</span>
+            </button>
+            <button onClick={() => setPwUser(client)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer">
+              {Icons.key} <span>Password</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Subscription */}
-        <div className="lg:col-span-2 bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
-          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">{Icons.star} Subscription</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-            <div className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04]">
-              <span className="text-gray-500 text-xs uppercase tracking-wider">Plan</span>
-              <div className="mt-1">{planBadge(client.plan)}</div>
-            </div>
-            <div className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04]">
-              <span className="text-gray-500 text-xs uppercase tracking-wider">Status</span>
-              <div className="mt-1">
-                {daysLeft === null ? (
-                  <span className="text-gray-400 text-sm">No subscription</span>
-                ) : daysLeft <= 0 ? (
-                  <span className="text-red-400 text-sm font-medium">Expired</span>
-                ) : daysLeft <= 3 ? (
-                  <span className="text-amber-400 text-sm font-medium">{daysLeft}d left</span>
-                ) : (
-                  <span className="text-green-400 text-sm font-medium">{daysLeft}d left</span>
-                )}
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        {/* User Info Card */}
+        <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            User Information
+          </h3>
+          <div className="space-y-3">
+            {[
+              { label: "Full Name", value: client.name || "—" },
+              { label: "Email", value: client.email },
+              { label: "User Type", value: (client.user_type || "individual").charAt(0).toUpperCase() + (client.user_type || "individual").slice(1) },
+              { label: "Industry", value: client.industry || "—" },
+              { label: "Registered", value: new Date(client.created_at).toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" }) },
+              { label: "Account Age", value: `${accountAge} days` },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+                <span className="text-gray-400 text-sm">{item.label}</span>
+                <span className="text-white text-sm font-medium">{item.value}</span>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Billing & Subscription Card */}
+        <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Billing & Subscription
+          </h3>
+          <div className="space-y-3 mb-5">
+            <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Current Plan</span>
+              <div>{planBadge(client.plan)}</div>
             </div>
-            <div className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04]">
-              <span className="text-gray-500 text-xs uppercase tracking-wider">Expires</span>
-              <div className="text-white text-sm mt-1">
-                {trialEnd ? trialEnd.toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" }) : "—"}
-              </div>
+            <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Status</span>
+              <span className={`text-sm font-medium ${daysLeft === null ? "text-gray-400" : daysLeft <= 0 ? "text-red-400" : daysLeft <= 3 ? "text-amber-400" : "text-green-400"}`}>
+                {daysLeft === null ? "No subscription" : daysLeft <= 0 ? "Expired" : `${daysLeft} days left`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Expires</span>
+              <span className="text-white text-sm font-medium">
+                {trialEnd ? trialEnd.toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" }) : "—"}
+              </span>
             </div>
           </div>
 
           {/* Trial progress bar */}
           {client.plan === "trial" && trialEnd && (
-            <div className="mb-6">
+            <div className="mb-5">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-gray-500">Trial Progress</span>
                 <span className={daysLeft! <= 3 ? "text-amber-400" : "text-purple-300"}>{Math.max(0, daysLeft!)} / 20 days</span>
@@ -737,7 +816,7 @@ function ClientProfile({ clientId, token, showToast, onBack }: { clientId: numbe
           )}
 
           {/* Extend subscription */}
-          <div className="border-t border-white/[0.06] pt-5">
+          <div className="border-t border-white/[0.06] pt-4">
             <h4 className="text-gray-300 text-sm font-medium mb-3">Extend Subscription</h4>
             <div className="flex items-end gap-3 flex-wrap">
               <div>
@@ -769,84 +848,74 @@ function ClientProfile({ clientId, token, showToast, onBack }: { clientId: numbe
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Metrics */}
+      {/* Activity & Metrics Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
-          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">{Icons.clock} Metrics</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            {Icons.clock} Activity
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Projects</span>
+              <span className="text-white text-sm font-bold">{client.projects_count}</span>
+            </div>
+            <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Skills Created</span>
+              <span className="text-purple-300 text-sm font-bold">{client.projects_count}</span>
+            </div>
+            <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
               <span className="text-gray-400 text-sm">Account Age</span>
               <span className="text-white text-sm font-medium">{accountAge}d</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
-              <span className="text-gray-400 text-sm">Registered</span>
-              <span className="text-white text-sm font-medium">{new Date(client.created_at).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
-              <span className="text-gray-400 text-sm">Projects</span>
-              <span className="text-white text-sm font-medium">{client.projects_count}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
-              <span className="text-gray-400 text-sm">Skills Created</span>
-              <span className="text-purple-300 text-sm font-medium">{client.projects_count}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
-              <span className="text-gray-400 text-sm">User Type</span>
-              <span className="text-white text-sm font-medium capitalize">{client.user_type || "individual"}</span>
-            </div>
-            {client.industry && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
-                <span className="text-gray-400 text-sm">Industry</span>
-                <span className="text-white text-sm font-medium">{client.industry}</span>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Projects & Skills — spans 2 cols */}
+        <div className="lg:col-span-2 bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              Projects & Skills
+            </h3>
+            <span className="text-gray-500 text-sm">{client.projects.length} total</span>
+          </div>
+
+          {client.projects.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="text-3xl mb-3 opacity-30">📁</div>
+              <p className="text-gray-500 text-sm">No projects created yet</p>
+              <p className="text-gray-600 text-xs mt-1">Projects will appear here when the client starts creating skills</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {client.projects.map((p) => (
+                <div key={p.id} className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04] hover:border-purple-500/20 transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="text-white text-sm font-medium truncate flex-1">{p.name}</h4>
+                    {p.robot_model && (
+                      <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/20 ml-2 flex-shrink-0">
+                        {p.robot_model}
+                      </span>
+                    )}
+                  </div>
+                  {p.description && <p className="text-gray-500 text-xs line-clamp-2 mb-3">{p.description}</p>}
+                  <div className="flex items-center justify-between text-[10px] text-gray-600">
+                    <span>Created {new Date(p.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+                    {p.updated_at && <span>Updated {new Date(p.updated_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Projects / Skills */}
-      <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            Projects & Skills
-          </h3>
-          <span className="text-gray-500 text-sm">{client.projects.length} total</span>
-        </div>
-
-        {client.projects.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-3xl mb-3 opacity-30">📁</div>
-            <p className="text-gray-500 text-sm">No projects created yet</p>
-            <p className="text-gray-600 text-xs mt-1">Projects will appear here when the client starts creating skills</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {client.projects.map((p) => (
-              <div key={p.id} className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04] hover:border-purple-500/20 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="text-white text-sm font-medium truncate flex-1">{p.name}</h4>
-                  {p.robot_model && (
-                    <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/20 ml-2 flex-shrink-0">
-                      {p.robot_model}
-                    </span>
-                  )}
-                </div>
-                {p.description && <p className="text-gray-500 text-xs line-clamp-2 mb-3">{p.description}</p>}
-                <div className="flex items-center justify-between text-[10px] text-gray-600">
-                  <span>Created {new Date(p.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
-                  {p.updated_at && <span>Updated {new Date(p.updated_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Edit Modal */}
+      {/* Edit Modal — uses ClientEditForm (no role) */}
       {editUser && (
         <Modal title={`Edit — ${editUser.email}`} onClose={() => setEditUser(null)}>
-          <EditUserForm user={editUser} onSave={async (data) => { await updateClient(data); }} />
+          <ClientEditForm user={editUser} onSave={async (data) => { await updateClient(data); }} />
         </Modal>
       )}
 
