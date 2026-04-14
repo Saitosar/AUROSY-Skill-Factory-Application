@@ -106,7 +106,6 @@ const NAV_ITEMS = [
   { label: "Home", path: "/" },
   { label: "Product", path: "/product" },
   { label: "Pricing", path: "/pricing" },
-  { label: "Docs", path: "/docs" },
   { label: "Company", path: "/company" },
 ];
 
@@ -223,14 +222,6 @@ export function LandingHome() {
       <div className="flex h-full">
         {/* Left — Content */}
         <div className="flex-1 flex flex-col justify-center px-6 lg:px-12 xl:px-20 max-w-[700px]">
-          {/* Tagline pill */}
-          <div className="mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              AI-powered robotics platform
-            </span>
-          </div>
-
           {/* Heading */}
           <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] mb-6">
             Your AI-
@@ -249,22 +240,15 @@ export function LandingHome() {
             No hardware required.
           </p>
 
-          {/* CTA buttons */}
+          {/* CTA button */}
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate(user ? "/pose" : "/register")}
+              onClick={() => navigate(user ? "/app/pose" : "/pricing")}
               className="group flex items-center gap-2 px-7 py-3.5 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:from-purple-500 hover:to-purple-400 transition-all cursor-pointer"
             >
               Start building
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
-            <Link
-              to="/docs"
-              className="flex items-center gap-2 px-6 py-3.5 rounded-full text-gray-300 hover:text-white transition-colors group"
-            >
-              Documentation
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </Link>
           </div>
         </div>
 
@@ -302,45 +286,153 @@ export function LandingProduct() {
   );
 }
 
+const PLANS = [
+  { name: "Free", price: "$0", features: ["1 project", "Browser simulation", "Community support"] },
+  { name: "Pro", price: "$49", features: ["Unlimited projects", "RL training", "Priority support", "Team collaboration"], highlight: true },
+  { name: "Enterprise", price: "Custom", features: ["Dedicated instance", "On-premise deploy", "Custom integrations", "24/7 support"] },
+];
+
 export function LandingPricing() {
+  const { user, register } = useAuth();
+  const navigate = useNavigate();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [regForm, setRegForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [regError, setRegError] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+
+  const handleSelectPlan = (planName: string) => {
+    if (planName === "Enterprise") return;
+    if (user) {
+      navigate("/app/pose");
+      return;
+    }
+    setSelectedPlan(planName);
+    setRegError("");
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError("");
+    if (regForm.password !== regForm.confirmPassword) {
+      setRegError("Passwords don't match");
+      return;
+    }
+    if (regForm.password.length < 6) {
+      setRegError("Password must be at least 6 characters");
+      return;
+    }
+    setRegLoading(true);
+    try {
+      await register({ email: regForm.email, password: regForm.password, name: regForm.name });
+      navigate("/app/pose");
+    } catch (err: any) {
+      setRegError(err.message || "Registration failed");
+    } finally {
+      setRegLoading(false);
+    }
+  };
+
   return (
     <PageTransition direction="right">
       <div className="flex h-full items-center px-6 lg:px-12 xl:px-20">
-        <div className="max-w-[1000px] mx-auto w-full grid md:grid-cols-3 gap-6">
-          {[
-            { name: "Free", price: "$0", features: ["1 project", "Browser simulation", "Community support"] },
-            { name: "Pro", price: "$49", features: ["Unlimited projects", "RL training", "Priority support", "Team collaboration"], highlight: true },
-            { name: "Enterprise", price: "Custom", features: ["Dedicated instance", "On-premise deploy", "Custom integrations", "24/7 support"] },
-          ].map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-2xl p-8 border transition-all ${
-                plan.highlight
-                  ? "bg-purple-500/10 border-purple-500/30 shadow-xl shadow-purple-500/10"
-                  : "bg-white/[0.03] border-white/[0.06] hover:border-white/10"
-              }`}
-            >
-              <h3 className="text-lg font-semibold text-white mb-1">{plan.name}</h3>
-              <div className="text-3xl font-bold text-white mb-6">
-                {plan.price}<span className="text-sm font-normal text-gray-400">{plan.price !== "Custom" ? "/mo" : ""}</span>
+        <div className="max-w-[1100px] mx-auto w-full flex flex-col md:flex-row gap-6 items-start">
+          {/* Plans */}
+          <div className="flex-1 grid md:grid-cols-3 gap-6 w-full">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl p-8 border transition-all ${
+                  plan.highlight
+                    ? "bg-purple-500/10 border-purple-500/30 shadow-xl shadow-purple-500/10"
+                    : "bg-white/[0.03] border-white/[0.06] hover:border-white/10"
+                } ${selectedPlan === plan.name ? "ring-2 ring-purple-500" : ""}`}
+              >
+                <h3 className="text-lg font-semibold text-white mb-1">{plan.name}</h3>
+                <div className="text-3xl font-bold text-white mb-6">
+                  {plan.price}<span className="text-sm font-normal text-gray-400">{plan.price !== "Custom" ? "/mo" : ""}</span>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((f) => (
+                    <li key={f} className="text-gray-400 text-sm flex items-center gap-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.highlight ? "#a855f7" : "#6b7280"} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handleSelectPlan(plan.name)}
+                  className={`w-full py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
+                    plan.highlight
+                      ? "bg-purple-600 text-white hover:bg-purple-500"
+                      : "bg-white/[0.06] text-gray-300 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {plan.name === "Enterprise" ? "Contact us" : user ? "Go to Studio" : "Get started"}
+                </button>
               </div>
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((f) => (
-                  <li key={f} className="text-gray-400 text-sm flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.highlight ? "#a855f7" : "#6b7280"} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button className={`w-full py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                plan.highlight
-                  ? "bg-purple-600 text-white hover:bg-purple-500"
-                  : "bg-white/[0.06] text-gray-300 hover:bg-white/10 hover:text-white"
-              }`}>
-                {plan.name === "Enterprise" ? "Contact us" : "Get started"}
-              </button>
+            ))}
+          </div>
+
+          {/* Inline registration form */}
+          {selectedPlan && !user && (
+            <div className="w-full md:w-[340px] shrink-0">
+              <div className="bg-[#161a22] rounded-2xl p-6 border border-white/10 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white font-semibold">Sign up — {selectedPlan}</h3>
+                  <button onClick={() => setSelectedPlan(null)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <form onSubmit={handleRegister} className="space-y-3">
+                  {regError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-red-400 text-xs">{regError}</div>
+                  )}
+                  <input
+                    type="text"
+                    value={regForm.name}
+                    onChange={(e) => setRegForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    placeholder="Name"
+                  />
+                  <input
+                    type="email"
+                    value={regForm.email}
+                    onChange={(e) => setRegForm((f) => ({ ...f, email: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    placeholder="Email"
+                  />
+                  <input
+                    type="password"
+                    value={regForm.password}
+                    onChange={(e) => setRegForm((f) => ({ ...f, password: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    placeholder="Password"
+                  />
+                  <input
+                    type="password"
+                    value={regForm.confirmPassword}
+                    onChange={(e) => setRegForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    placeholder="Confirm password"
+                  />
+                  <button
+                    type="submit"
+                    disabled={regLoading}
+                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {regLoading ? "Creating..." : "Create Account"}
+                  </button>
+                </form>
+                <p className="text-center mt-3 text-xs text-gray-500">
+                  Already have an account?{" "}
+                  <Link to="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
+                </p>
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </PageTransition>

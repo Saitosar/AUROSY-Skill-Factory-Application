@@ -6,13 +6,14 @@ import Authoring from "./pages/Authoring";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import LandingLayout, { LandingHome, LandingProduct, LandingPricing, LandingDocs, LandingCompany } from "./pages/Landing";
+import LandingLayout, { LandingHome, LandingProduct, LandingPricing, LandingCompany } from "./pages/Landing";
 import Pipeline from "./pages/Pipeline";
 import PoseStudio from "./pages/PoseStudio";
 import ScenarioBuilder from "./pages/ScenarioBuilder";
 import Help from "./pages/Help";
 import Jobs from "./pages/Jobs";
 import Packages from "./pages/Packages";
+import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 
 /* ── Protected Route Wrapper ── */
@@ -117,7 +118,6 @@ export default function App() {
       <Route path="/" element={<LandingLayout><LandingHome /></LandingLayout>} />
       <Route path="/product" element={<LandingLayout><LandingProduct /></LandingLayout>} />
       <Route path="/pricing" element={<LandingLayout><LandingPricing /></LandingLayout>} />
-      <Route path="/docs" element={<LandingLayout><LandingDocs /></LandingLayout>} />
       <Route path="/company" element={<LandingLayout><LandingCompany /></LandingLayout>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -178,6 +178,9 @@ function AppShell() {
           <NavLink to="/app/packages" className={({ isActive }) => (isActive ? "active" : "")}>
             {t("nav.packages")}
           </NavLink>
+          <NavLink to="/app/billing" className={({ isActive }) => (isActive ? "active" : "")}>
+            Billing
+          </NavLink>
         </nav>
         <div className="topbar-right">
           <UserMenu />
@@ -202,6 +205,7 @@ function AppShell() {
             <Route path="jobs" element={<Jobs />} />
             <Route path="jobs/:jobId" element={<Jobs />} />
             <Route path="packages" element={<Packages />} />
+            <Route path="billing" element={<Billing />} />
             <Route path="pose" element={<PoseStudio />} />
             <Route path="help" element={<Help />} />
             <Route path="settings" element={<Settings />} />
