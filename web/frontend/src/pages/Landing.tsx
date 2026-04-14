@@ -116,9 +116,6 @@ function LandingNav({ activePath }: { activePath: string }) {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
           <img src="/logo.svg" alt="AUROSY" className="h-10 w-auto" draggable={false} />
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-medium">
-            Beta
-          </span>
         </Link>
 
         {/* Nav links */}
@@ -197,7 +194,7 @@ function RobotVisual() {
       <FloatingBadge className="top-[50%] right-[0%] animate-float-medium">
         29-DoF full body control
       </FloatingBadge>
-      <FloatingBadge className="bottom-[25%] right-[8%] animate-float-fast">
+      <FloatingBadge className="bottom-[25%] left-[5%] animate-float-fast">
         Real-time MuJoCo physics
       </FloatingBadge>
     </div>
