@@ -372,11 +372,18 @@ export function LandingPricing() {
           {selectedPlan && !user && (
             <div className="w-full md:w-[340px] shrink-0">
               <div className="bg-[#161a22] rounded-2xl p-6 border border-white/10 shadow-xl">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <h3 className="text-white font-semibold">Sign up — {selectedPlan}</h3>
                   <button onClick={() => setSelectedPlan(null)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
+                </div>
+                <div className="mb-4 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <p className="text-purple-300 text-xs font-medium flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                    20-day free trial included
+                  </p>
+                  <p className="text-gray-400 text-[11px] mt-0.5">No credit card required. After trial you'll stay on the Free plan.</p>
                 </div>
                 <form onSubmit={handleRegister} className="space-y-3">
                   {regError && (

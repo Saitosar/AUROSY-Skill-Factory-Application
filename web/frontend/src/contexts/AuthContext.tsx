@@ -10,6 +10,8 @@ interface User {
   role: string;
   user_type: string;
   industry: string;
+  plan: string;
+  trial_ends_at: string | null;
   created_at: string;
 }
 
