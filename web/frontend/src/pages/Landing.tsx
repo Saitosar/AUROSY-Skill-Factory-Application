@@ -202,17 +202,16 @@ function CodeStream() {
   }, [visibleLines, charIndex]);
 
   return (
-    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[540px] h-[100px] z-[5] pointer-events-none overflow-hidden">
+    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[540px] h-[70px] z-[5] pointer-events-none overflow-hidden">
       {/* Fade top edge */}
-      <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
+      <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
       {/* Fade bottom edge */}
-      <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-[#0B0F14] to-transparent z-10" />
-      {/* Fade left/right edges */}
+      <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-[#0B0F14] to-transparent z-10" />
+      {/* Fade left edge */}
       <div className="absolute top-0 bottom-0 left-0 w-6 bg-gradient-to-r from-[#0B0F14] to-transparent z-10" />
-      <div className="absolute top-0 bottom-0 right-0 w-6 bg-gradient-to-l from-[#0B0F14] to-transparent z-10" />
 
       {/* Code container */}
-      <div className="h-full flex items-start justify-center pt-2">
+      <div className="h-full flex items-start justify-center pt-1">
         <div className="w-full px-3 font-mono text-[7px] leading-[1.6] opacity-35">
           {CODE_LINES.slice(0, visibleLines + 1).map((line, i) => {
             if (line.text === "") return <div key={i} className="h-[1.8em]" />;
