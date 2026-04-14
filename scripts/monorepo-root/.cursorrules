@@ -1,0 +1,18 @@
+# AUROSY Skill Factory — Monorepo AI Agent Rules
+# Read `.github/copilot-instructions.md` for full project instructions
+# Read `CONTRIBUTING.md` for development workflow
+
+## Structure
+- `app/` — Web Application (React + TypeScript + Vite + Tailwind)
+- `platform/` — ML Platform (Python + RL + MuJoCo)
+
+## Quick Rules
+- ALWAYS `git pull origin main` before starting
+- ALWAYS verify build before deploying:
+  - Frontend: `cd app/web/frontend && npm run build`
+  - Platform: `cd platform && python -m pytest`
+- NEVER edit files on production server directly
+- NEVER skip git commit/push before deploy
+- Commit format: `scope/Component: description` (scopes: app/, platform/, infra/, docs/)
+- Deploy: `./deploy.sh frontend` or `./deploy.sh backend` or `./deploy.sh all`
+- Use shared components from `app/web/frontend/src/components/`

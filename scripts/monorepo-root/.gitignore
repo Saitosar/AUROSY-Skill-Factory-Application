@@ -1,0 +1,34 @@
+# OS / editor
+.DS_Store
+**/.DS_Store
+.cursor/
+**/MUJOCO_LOG.TXT
+
+# ── Python ──
+venv/
+__pycache__/
+*.pyc
+*.py[cod]
+*.egg-info/
+
+# ── App (Vite / React) ──
+app/web/frontend/node_modules/
+app/web/frontend/dist/
+app/web/frontend/.vite/
+app/web/frontend/tsconfig.tsbuildinfo
+app/web/frontend/.env
+app/web/frontend/.env.local
+app/web/frontend/.env.*.local
+
+# ── Platform (RL training outputs — large) ──
+platform/balance_policy/
+platform/balance_v2/
+platform/ppo_output/
+platform/ppo_output_2m/
+platform/ppo_output_long/
+platform/smoke_output/
+platform/venv/
+*.onnx
+
+# ── Platform libs (binary) ──
+platform/platform/lib/cyclonedds/**/*.dylib
