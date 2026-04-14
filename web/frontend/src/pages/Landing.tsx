@@ -272,15 +272,22 @@ function CodeStream() {
 
 /* ── Partner logos ── */
 function PartnerLogos() {
-  const partners = ["NVIDIA", "Unitree", "MuJoCo", "PyTorch", "ROS 2", "Isaac Sim"];
+  const partners = ["NVIDIA", "Unitree", "MuJoCo", "PyTorch", "ROS 2", "Isaac Sim", "ONNX", "OpenAI Gym"];
+  const doubled = [...partners, ...partners];
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm">
-      <div className="max-w-[1400px] mx-auto flex items-center justify-center gap-12 lg:gap-16 h-16 px-6 overflow-hidden">
-        {partners.map((name) => (
+    <div className="absolute bottom-0 left-0 right-0 border-t border-white/[0.04] bg-white/[0.01] overflow-hidden h-10">
+      <div
+        className="flex items-center gap-10 h-full whitespace-nowrap"
+        style={{
+          animation: "marquee 25s linear infinite",
+          width: "max-content",
+        }}
+      >
+        {doubled.map((name, i) => (
           <span
-            key={name}
-            className="text-gray-500 text-sm font-semibold tracking-wider uppercase whitespace-nowrap select-none"
+            key={i}
+            className="text-gray-600 text-[11px] font-semibold tracking-[0.15em] uppercase select-none"
           >
             {name}
           </span>

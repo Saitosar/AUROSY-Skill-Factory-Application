@@ -2689,6 +2689,12 @@ tr.joint-row-selected td {
   100% { background-position: 200% 50%; }
 }
 
+/* ── Marquee scroll ── */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 /* ── MacBook Pro Mockup ── */
 .mbp-mockup-wrapper {
   width: 85%;
