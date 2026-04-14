@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+
+const ADMIN_TOKEN_KEY = "aurosy_admin_token";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 function apiUrl(path: string) {
@@ -94,8 +95,7 @@ const Icons = {
 };
 
 /* ── Admin Login ── */
-function AdminLogin() {
-  const { login } = useAuth();
+function AdminLogin({ onLogin }: { onLogin: (token: string) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -105,8 +105,27 @@ function AdminLogin() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    try { await login(email, password); }
-    catch (err: any) { setError(err.message || "Login failed"); }
+    try {
+      const res = await fetch(apiUrl("/api/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Login failed" }));
+        throw new Error(err.detail || "Login failed");
+      }
+      const { access_token } = await res.json();
+      // Verify admin role before storing
+      const meRes = await fetch(apiUrl("/api/auth/me"), {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+      if (!meRes.ok) throw new Error("Failed to verify user");
+      const user = await meRes.json();
+      if (user.role !== "admin") throw new Error("Admin privileges required");
+      localStorage.setItem(ADMIN_TOKEN_KEY, access_token);
+      onLogin(access_token);
+    } catch (err: any) { setError(err.message || "Login failed"); }
     finally { setLoading(false); }
   };
 
@@ -1024,12 +1043,36 @@ function NotificationBell({ token }: { token: string }) {
 type AdminPage = "users" | "settings" | "client-profile";
 
 export default function AdminPanel() {
-  const { user, token, logout } = useAuth();
+  const [adminToken, setAdminToken] = useState<string | null>(() => localStorage.getItem(ADMIN_TOKEN_KEY));
+  const [adminUser, setAdminUser] = useState<{ id: number; email: string; name: string; role: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState<AdminPage>("users");
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Verify stored admin token on mount
+  useEffect(() => {
+    if (!adminToken) { setAuthLoading(false); return; }
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/auth/me"), {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (data.role !== "admin") throw new Error();
+        setAdminUser(data);
+      } catch {
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        setAdminToken(null);
+        setAdminUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    })();
+  }, [adminToken]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1039,23 +1082,27 @@ export default function AdminPanel() {
     return () => document.removeEventListener("mousedown", handler);
   }, [dropdownOpen]);
 
-  if (!user) return <AdminLogin />;
-
-  if (user.role !== "admin") {
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B0F14] px-4">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🚫</div>
-          <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
-          <p className="text-gray-400 mb-6">Admin privileges required.</p>
-          <Link to="/" className="text-purple-400 hover:text-purple-300 text-sm">Back to home</Link>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0B0F14]">
+        <div className="text-gray-500 text-sm">Loading...</div>
       </div>
     );
   }
 
+  if (!adminToken || !adminUser) {
+    return <AdminLogin onLogin={(t) => { setAdminToken(t); }} />;
+  }
+
+  const token = adminToken;
+  const adminLogout = () => {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    setAdminToken(null);
+    setAdminUser(null);
+  };
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
-  const displayName = user.name || user.email || "Admin";
+  const displayName = adminUser.name || adminUser.email || "Admin";
 
   const sidebarItems: { id: AdminPage; label: string; icon: JSX.Element }[] = [
     { id: "users", label: "Clients", icon: Icons.users },
@@ -1114,7 +1161,7 @@ export default function AdminPanel() {
               </div>
               <div className="text-left hidden sm:block">
                 <div className="text-sm text-white font-medium">{displayName}</div>
-                <div className="text-xs text-gray-500">{user.email}</div>
+                <div className="text-xs text-gray-500">{adminUser.email}</div>
               </div>
               {Icons.chevDown}
             </button>
@@ -1124,7 +1171,7 @@ export default function AdminPanel() {
                   {Icons.settings} Settings
                 </button>
                 <div className="my-1 border-t border-white/[0.06]" />
-                <button onClick={() => { setDropdownOpen(false); logout(); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer">
+                <button onClick={() => { setDropdownOpen(false); adminLogout(); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer">
                   {Icons.logout} Log Out
                 </button>
               </div>
