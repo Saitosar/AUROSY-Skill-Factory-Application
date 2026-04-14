@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aurosy/contracts/authoring/nla_timeline.schema.json",
+  "title": "Pose Studio NLA Timeline",
+  "type": "object",
+  "required": ["version", "fps", "tracks"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "fps": { "type": "number", "minimum": 1 },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "joints", "clips", "enabled", "weight"],
+        "properties": {
+          "id": { "type": "string", "enum": ["hands", "legs", "torso"] },
+          "label": { "type": "string" },
+          "joints": { "type": "array", "items": { "type": "string" } },
+          "enabled": { "type": "boolean" },
+          "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+          "clips": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "startSec", "durationSec", "curves"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "startSec": { "type": "number", "minimum": 0 },
+                "durationSec": { "type": "number", "minimum": 0 },
+                "curves": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["joint", "keyframes"],
+                    "properties": {
+                      "joint": { "type": "string" },
+                      "keyframes": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["id", "timeSec", "valueRad", "inHandle", "outHandle"],
+                          "properties": {
+                            "id": { "type": "string" },
+                            "timeSec": { "type": "number", "minimum": 0 },
+                            "valueRad": { "type": "number" },
+                            "inHandle": {
+                              "type": "object",
+                              "required": ["dt", "dv"],
+                              "properties": {
+                                "dt": { "type": "number" },
+                                "dv": { "type": "number" }
+                              }
+                            },
+                            "outHandle": {
+                              "type": "object",
+                              "required": ["dt", "dv"],
+                              "properties": {
+                                "dt": { "type": "number" },
+                                "dv": { "type": "number" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

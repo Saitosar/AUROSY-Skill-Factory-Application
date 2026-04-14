@@ -409,6 +409,8 @@
     "motionCaptureUnavailable": "Retargeting is unavailable on this backend",
     "liveModeToggle": "Live Mode",
     "ddsModeWarning": "Backend telemetry_mode=dds. Pose Studio may use mock simulation unless DDS bridge is active.",
+    "timelineImported": "Local recording imported into NLA timeline",
+    "timelineJointSmoothed": "Selected joint range was smoothed",
     "motionCaptureLandmarksSaved": "Saved {{count}} pose frames as platform artifact \"{{name}}\". Use «Build reference from landmarks» in the pipeline panel.",
     "motionCaptureLandmarksSaveFail": "Could not save landmarks artifact",
     "fallbackGroups": {

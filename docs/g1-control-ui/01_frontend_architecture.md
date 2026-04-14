@@ -77,6 +77,7 @@ flowchart TB
 |--------|-----------------|------------------------|
 | **Authoring** | Редактирование и проверка JSON: keyframes, motion, scenario | `POST /api/validate`; схемы из `public/contracts/` |
 | **Pose / visualization** | 2D-схема по группам суставов; 3D MuJoCo WASM; live track от камеры через motion capture + retarget | `GET /api/joints`, `GET /api/meta`, `POST /api/pipeline/retarget`, `WS /ws/capture`; ассеты в `public/pose/`, `public/mujoco/g1/` |
+| **Pose NLA timeline** | Multi-track таймлайн (`hands/legs/torso`), keyframes и Bezier handles, семплирование в Phase 0 экспорт | `src/lib/nlaTimeline.ts`, `src/lib/nlaEvaluation.ts`, `src/components/pose-timeline/PoseTimeline.tsx`, `src/lib/poseAuthoringBridge.ts` |
 | **Scenario builder** | Каталог mid-level действий, сборка цепочки нод, оценка длительности | `GET /api/mid-level/actions`, `POST /api/scenario/estimate` |
 | **Pipeline** | Формы preprocess / playback / train; retargeting video landmarks в `joint_angles`; отображение exit_code, stdout/stderr | `POST /api/pipeline/preprocess`, `validate-motion`, `retarget`, `playback`, `train`; `GET /api/pipeline/detect-cli` |
 | **Platform jobs** | Сохранение JSON-артефактов; постановка асинхронного train; список задач | `POST /api/platform/artifacts/{name}`, `POST /api/jobs/train`, `GET /api/jobs`, `GET /api/jobs/{job_id}` |
@@ -109,8 +110,10 @@ flowchart TB
 3. **Конвейер:** пользователь передаёт пути к файлам на машине бэкенда или встраивает JSON → бэкенд запускает subprocess и in-process сервисы (включая `POST /api/pipeline/retarget`) → фронт показывает логи и результаты.
 4. **Платформа / задачи:** сохранение JSON как артефакта → постановка train в очередь → опрос `GET /api/jobs/{id}` до терминального статуса.
 5. **Live Track в Pose Studio:** `MotionCapturePanel` отправляет JPEG кадры в `WS /ws/capture`, получает landmarks, отправляет их в `POST /api/pipeline/retarget`, затем обновляет `wasmJointRad` в `PoseStudio` для live preview.
-6. **Телеметрия (API):** эндпоинт `/ws/telemetry` остаётся доступным контрактом; на **Главной** при доступном API показывается `telemetry_mode` из `GET /api/meta`.
-7. **Fallback-path:** если `WS /ws/capture` недоступен, фронтенд переключается на локальный `PoseLandmarker` и продолжает ретаргетинг через `POST /api/pipeline/retarget`.
+6. **NLA authoring в Pose Studio:** таймлайн хранится в модели `NlaTimeline` (треки, клипы, кривые), вычисляется через Bezier evaluator + track mixer, затем семплируется в `keyframes`/`pose.json` для совместимости с Phase 0.
+7. **Импорт noisy-данных:** локальная запись live-track (`local_joint_recording`) преобразуется в черновой NLA-клип с локальным сглаживанием (`smoothNoisySegment`), чтобы пользователь сразу редактировал кривые.
+8. **Телеметрия (API):** эндпоинт `/ws/telemetry` остаётся доступным контрактом; на **Главной** при доступном API показывается `telemetry_mode` из `GET /api/meta`.
+9. **Fallback-path:** если `WS /ws/capture` недоступен, фронтенд переключается на локальный `PoseLandmarker` и продолжает ретаргетинг через `POST /api/pipeline/retarget`.
 
 ---
 
