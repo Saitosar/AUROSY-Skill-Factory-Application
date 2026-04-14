@@ -2683,6 +2683,12 @@ tr.joint-row-selected td {
 .animate-float-medium { animation: float-medium 4s ease-in-out infinite 0.5s; }
 .animate-float-fast { animation: float-fast 3.5s ease-in-out infinite 1s; }
 
+/* ── Shimmer text gradient animation ── */
+@keyframes shimmer-text {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
 /* ── YouTube URL Input ────────────────────────────────────────────────────── */
 
 .youtube-url-input {

@@ -381,10 +381,31 @@ export function LandingHome() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(user ? "/app/pose" : "/pricing")}
-              className="group flex items-center gap-2 px-7 py-3.5 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 text-white font-semibold shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:from-purple-500 hover:to-purple-400 transition-all cursor-pointer"
+              className="group flex items-center gap-2 px-1 py-1 text-[22px] font-bold tracking-tight cursor-pointer transition-all bg-transparent border-none"
+              style={{
+                color: "#a78bfa",
+                backgroundImage: "linear-gradient(90deg, #a78bfa, #a78bfa)",
+                backgroundSize: "100% 100%",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                transition: "all 0.4s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+                e.currentTarget.style.backgroundSize = "200% 100%";
+                e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+                e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(167,139,250,0.5))";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #a78bfa, #a78bfa)";
+                e.currentTarget.style.backgroundSize = "100% 100%";
+                e.currentTarget.style.animation = "none";
+                e.currentTarget.style.filter = "none";
+              }}
             >
               Start building
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" className="group-hover:translate-x-1 transition-transform" style={{ filter: "drop-shadow(0 0 4px rgba(167,139,250,0.4))" }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
           </div>
         </div>
