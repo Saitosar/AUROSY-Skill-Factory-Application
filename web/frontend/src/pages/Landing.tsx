@@ -188,9 +188,9 @@ function RobotVisual() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px]" />
       <div className="absolute top-1/3 right-1/4 w-[200px] h-[200px] bg-cyan-500/10 rounded-full blur-[80px]" />
 
-      {/* Robot SVG */}
+      {/* Robot image */}
       <img
-        src="/robot-hero.svg"
+        src="/robot-hero.png"
         alt="AUROSY Robot"
         className="relative z-10 max-h-[75vh] w-auto drop-shadow-2xl object-contain"
         draggable={false}
