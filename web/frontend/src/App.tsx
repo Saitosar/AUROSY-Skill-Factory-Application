@@ -154,7 +154,7 @@ function AppShell() {
       {/* ── Top Navigation Bar ── */}
       <header className="topbar">
         <NavLink to="/" className="topbar-logo">
-          AUROSY
+          <img src="/logo.svg" alt="AUROSY" style={{ height: 32, width: "auto" }} />
         </NavLink>
         <nav className="topbar-nav">
           <NavLink end to="/app" className={({ isActive }) => (isActive ? "active" : "")}>

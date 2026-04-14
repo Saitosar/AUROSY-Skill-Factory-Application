@@ -115,12 +115,7 @@ function LandingNav({ activePath }: { activePath: string }) {
       <div className="max-w-[1400px] mx-auto flex items-center justify-between h-20">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-500/20">
-            <span className="text-white font-bold text-sm">A</span>
-          </div>
-          <span className="text-white font-bold text-xl tracking-wide">
-            AUROSY
-          </span>
+          <img src="/logo.svg" alt="AUROSY" className="h-10 w-auto" draggable={false} />
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-medium">
             Beta
           </span>
