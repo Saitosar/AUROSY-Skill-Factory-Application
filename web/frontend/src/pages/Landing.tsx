@@ -329,16 +329,16 @@ function RobotVisual() {
 
       {/* Floating badges */}
       <TechBadge
-        prefix="sim.env = "
-        text='"Browser-based simulation"'
+        prefix="sim = "
+        text='"Browser simulation"'
         position="top-[15%] right-[5%] animate-float-slow"
         lineEnd={{ x: "-80px", y: "60px" }}
         color="#22d3ee"
         delay={800}
       />
       <TechBadge
-        prefix="robot.dof = "
-        text='"29-DoF full body control"'
+        prefix="dof = "
+        text='"29-DoF control"'
         position="top-[50%] right-[0%] animate-float-medium"
         lineEnd={{ x: "-100px", y: "0" }}
         color="#a78bfa"
@@ -346,9 +346,9 @@ function RobotVisual() {
       />
       <TechBadge
         prefix="physics = "
-        text='"Real-time MuJoCo engine"'
-        position="bottom-[25%] left-[5%] animate-float-fast"
-        lineEnd={{ x: "100px", y: "-40px" }}
+        text='"MuJoCo engine"'
+        position="top-[5%] left-[15%] animate-float-fast"
+        lineEnd={{ x: "80px", y: "60px" }}
         color="#4ade80"
         delay={2400}
       />
