@@ -202,7 +202,7 @@ function CodeStream() {
   }, [visibleLines, charIndex]);
 
   return (
-    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[180px] h-[100px] z-[5] pointer-events-none overflow-hidden">
+    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[540px] h-[100px] z-[5] pointer-events-none overflow-hidden">
       {/* Fade top edge */}
       <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
       {/* Fade bottom edge */}
