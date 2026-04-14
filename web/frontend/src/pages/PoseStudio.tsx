@@ -4,19 +4,19 @@ import { toast } from "sonner";
 import JointWasmSliderRow from "../components/JointWasmSliderRow";
 import { MotionCapturePanel } from "../components/MotionCapturePanel";
 import { MotionPipelinePanel } from "../components/MotionPipelinePanel";
+import { PoseTimeline } from "../components/pose-timeline/PoseTimeline";
 import MuJoCoG1Viewer from "../components/mujoco/MuJoCoG1Viewer";
 import { getJoints, savePoseDraft } from "../api/client";
 import { useApiMeta } from "../hooks/useApiMeta";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../mujoco/jointMapping";
 import { jointRangeRad, qposToSkillJointAngles } from "../mujoco/qposToSkillAngles";
 import {
-  buildKeyframesDocumentFromPoses,
-  buildSdkPoseJsonArray,
+  buildKeyframesDocumentFromNlaTimeline,
+  buildSdkPoseJsonArrayFromNlaTimeline,
   stringifySdkPoseJson,
 } from "../lib/poseAuthoringBridge";
 import {
   captureFullJointAnglesSkillKeys,
-  segmentDurationSec,
   smoothStepJointAnglesRad,
 } from "../lib/motionInterpolation";
 import type { JointAngles } from "../lib/telemetryTypes";
@@ -27,13 +27,23 @@ import {
   WASM_FALLBACK_JOINT_INDICES,
 } from "../lib/wasmJointLayoutFallback";
 import { DANCE_LIBRARY, type DanceSequence } from "../lib/danceSequences";
+import type { LiveRecorderFrame } from "../hooks/useLiveRecorder";
+import { evaluateNlaPoseAtTime, sampleNlaTimeline, smoothNoisySegment } from "../lib/nlaEvaluation";
+import {
+  cloneTimeline,
+  createEmptyNlaTimeline,
+  createNlaKeyframe,
+  migrateSavedPosesToNlaTimeline,
+  timelineDurationSec,
+  type NlaTimeline,
+  type NlaTrackId,
+} from "../lib/nlaTimeline";
 
 const FALLBACK_JOINT_MAP = defaultJointMapFromSkillKeys();
 
 const MAX_SAVED_WASM_POSES = 3;
-const WASM_MOTION_SPEED_RAD_S = 0.5;
-const MIN_MOTION_SEGMENT_SEC = 0.05;
 const KEYFRAME_TIMESTAMP_STEP_S = 0.5;
+const NLA_PREVIEW_SAMPLE_HZ = 30;
 
 export default function PoseStudio() {
   const { t } = useTranslation();
@@ -56,6 +66,10 @@ export default function PoseStudio() {
   const [wasmReady, setWasmReady] = useState(false);
   const [wasmViewerError, setWasmViewerError] = useState<string | null>(null);
   const [savedWasmPoses, setSavedWasmPoses] = useState<JointAngles[]>([]);
+  const [nlaTimeline, setNlaTimeline] = useState<NlaTimeline>(() => createEmptyNlaTimeline());
+  const [timelineTimeSec, setTimelineTimeSec] = useState(0);
+  const [selectedTrackId, setSelectedTrackId] = useState<NlaTrackId>("hands");
+  const [selectedTrackJoint, setSelectedTrackJoint] = useState("left_shoulder_pitch");
   const [wasmMotionPlaying, setWasmMotionPlaying] = useState(false);
   const wasmMotionPlayingRef = useRef(false);
   const wasmMotionCancelRef = useRef(false);
@@ -95,12 +109,22 @@ export default function PoseStudio() {
     return wasmJointRad;
   }, [wasmReady, wasmJointRad]);
 
+  const timelineEndSec = useMemo(() => timelineDurationSec(nlaTimeline), [nlaTimeline]);
+
   const keyframesListForExport = useMemo(() => {
     if (!mergedForExport) return null;
-    const cur = captureFullJointAnglesSkillKeys(mergedForExport);
-    if (savedWasmPoses.length === 0) return [cur];
-    return [cur, ...savedWasmPoses];
-  }, [mergedForExport, savedWasmPoses]);
+    const sampled = sampleNlaTimeline(nlaTimeline, {
+      sampleRateHz: 1 / KEYFRAME_TIMESTAMP_STEP_S,
+      basePose: mergedForExport,
+    });
+    if (sampled.poses.length > 0) return sampled.poses;
+    return [captureFullJointAnglesSkillKeys(mergedForExport)];
+  }, [mergedForExport, nlaTimeline]);
+
+  const currentTimelinePose = useMemo(
+    () => evaluateNlaPoseAtTime(nlaTimeline, timelineTimeSec, wasmJointRad),
+    [nlaTimeline, timelineTimeSec, wasmJointRad]
+  );
 
   const saveWasmDraft = useCallback(async () => {
     if (!keyframesListForExport?.length) {
@@ -113,9 +137,9 @@ export default function PoseStudio() {
       return;
     }
     try {
-      const doc = buildKeyframesDocumentFromPoses(keyframesListForExport, {
-        timestampS: 0,
-        timestampStepS: KEYFRAME_TIMESTAMP_STEP_S,
+      const doc = buildKeyframesDocumentFromNlaTimeline(nlaTimeline, {
+        sampleRateHz: 1 / KEYFRAME_TIMESTAMP_STEP_S,
+        smoothAlpha: 0.2,
       });
       const { path } = await savePoseDraft({ name, document: doc });
       toast.success(t("pose.saveDraftOk", { path }));
@@ -124,7 +148,29 @@ export default function PoseStudio() {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(t("pose.saveDraftFail"), { description: msg });
     }
-  }, [keyframesListForExport, draftName, t]);
+  }, [keyframesListForExport, draftName, nlaTimeline, t]);
+
+  useEffect(() => {
+    if (liveTrackEnabled || wasmMotionPlayingRef.current) return;
+    if (!wasmReady) return;
+    setWasmJointRad((prev) => ({ ...prev, ...currentTimelinePose }));
+  }, [currentTimelinePose, liveTrackEnabled, wasmReady]);
+
+  const rebuildTimelineFromSavedPoses = useCallback(
+    (poses: JointAngles[]) => {
+      if (!mergedForExport) return;
+      const timeline = migrateSavedPosesToNlaTimeline(
+        [captureFullJointAnglesSkillKeys(mergedForExport), ...poses],
+        {
+          stepSec: KEYFRAME_TIMESTAMP_STEP_S,
+          fps: NLA_PREVIEW_SAMPLE_HZ,
+        }
+      );
+      setNlaTimeline(timeline);
+      setTimelineTimeSec(0);
+    },
+    [mergedForExport]
+  );
 
   const addWasmPose = useCallback(() => {
     if (
@@ -135,20 +181,25 @@ export default function PoseStudio() {
     ) {
       return;
     }
-    setSavedWasmPoses((prev) => [...prev, captureFullJointAnglesSkillKeys(mergedForExport)]);
+    setSavedWasmPoses((prev) => {
+      const next = [...prev, captureFullJointAnglesSkillKeys(mergedForExport)];
+      rebuildTimelineFromSavedPoses(next);
+      return next;
+    });
     toast.success(
       t("pose.addPoseOk", {
         n: savedWasmPoses.length + 1,
         maxSaved: MAX_SAVED_WASM_POSES,
       })
     );
-  }, [liveTrackEnabled, mergedForExport, savedWasmPoses.length, t]);
+  }, [liveTrackEnabled, mergedForExport, rebuildTimelineFromSavedPoses, savedWasmPoses.length, t]);
 
   const clearWasmSavedPoses = useCallback(() => {
     if (liveTrackEnabled) return;
     setSavedWasmPoses([]);
+    rebuildTimelineFromSavedPoses([]);
     toast.success(t("pose.clearPosesOk"));
-  }, [liveTrackEnabled, t]);
+  }, [liveTrackEnabled, rebuildTimelineFromSavedPoses, t]);
 
   const downloadSdkPoseJson = useCallback(() => {
     const list = keyframesListForExport;
@@ -156,7 +207,10 @@ export default function PoseStudio() {
       toast.error(t("pose.sdkDownloadNoPose"));
       return;
     }
-    const sdk = buildSdkPoseJsonArray(list);
+    const sdk = buildSdkPoseJsonArrayFromNlaTimeline(
+      nlaTimeline,
+      1 / KEYFRAME_TIMESTAMP_STEP_S
+    );
     const blob = new Blob([stringifySdkPoseJson(sdk)], { type: "application/json;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -164,7 +218,7 @@ export default function PoseStudio() {
     a.click();
     URL.revokeObjectURL(a.href);
     toast.success(t("pose.sdkDownloadOk"));
-  }, [keyframesListForExport, t]);
+  }, [keyframesListForExport, nlaTimeline, t]);
 
   const stopWasmMotion = useCallback(() => {
     wasmMotionCancelRef.current = true;
@@ -172,16 +226,20 @@ export default function PoseStudio() {
   }, []);
 
   const playWasmMotion = useCallback(async () => {
-    if (savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlayingRef.current || liveTrackEnabled) return;
+    if (!wasmReady || wasmMotionPlayingRef.current || liveTrackEnabled) return;
+    const sampled = sampleNlaTimeline(nlaTimeline, {
+      sampleRateHz: NLA_PREVIEW_SAMPLE_HZ,
+      basePose: wasmJointRadRef.current,
+      smoothAlpha: 0.2,
+    });
+    if (!sampled.poses.length) return;
     wasmMotionCancelRef.current = false;
     setWasmMotionPlaying(true);
     try {
-      let from = captureFullJointAnglesSkillKeys(wasmJointRadRef.current);
-      for (let s = 0; s < savedWasmPoses.length; s++) {
+      for (let s = 0; s < sampled.poses.length; s++) {
         if (wasmMotionCancelRef.current) break;
-        const to = savedWasmPoses[s]!;
-        const durationMs =
-          segmentDurationSec(from, to, WASM_MOTION_SPEED_RAD_S, MIN_MOTION_SEGMENT_SEC) * 1000;
+        const to = sampled.poses[s]!;
+        const durationMs = Math.max(16, Math.round((1 / NLA_PREVIEW_SAMPLE_HZ) * 1000));
         await new Promise<void>((resolve) => {
           const t0 = performance.now();
           const step = (now: number) => {
@@ -190,19 +248,19 @@ export default function PoseStudio() {
               return;
             }
             const u = Math.min(1, (now - t0) / durationMs);
+            const from = captureFullJointAnglesSkillKeys(wasmJointRadRef.current);
             setWasmJointRad(smoothStepJointAnglesRad(from, to, u));
             if (u < 1) requestAnimationFrame(step);
             else resolve();
           };
           requestAnimationFrame(step);
         });
-        from = to;
       }
     } finally {
       setWasmMotionPlaying(false);
       wasmMotionCancelRef.current = false;
     }
-  }, [liveTrackEnabled, savedWasmPoses, wasmReady]);
+  }, [liveTrackEnabled, nlaTimeline, wasmReady]);
 
   const playDance = useCallback(async (dance: DanceSequence) => {
     if (!wasmReady || wasmMotionPlayingRef.current || dancePlaying || liveTrackEnabled) return;
@@ -241,6 +299,136 @@ export default function PoseStudio() {
     }
   }, [liveTrackEnabled, wasmReady, dancePlaying]);
 
+  const updateTimeline = useCallback((updater: (draft: NlaTimeline) => void) => {
+    setNlaTimeline((prev) => {
+      const draft = cloneTimeline(prev);
+      updater(draft);
+      return draft;
+    });
+  }, []);
+
+  const addTimelineKeyframe = useCallback(
+    (trackId: string, joint: string, timeSec: number) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        const clip = track?.clips[0];
+        if (!track || !clip) return;
+        const curve = clip.curves.find((item) => item.joint === joint);
+        if (!curve) return;
+        const value = typeof wasmJointRadRef.current[joint] === "number" ? wasmJointRadRef.current[joint]! : 0;
+        curve.keyframes.push(createNlaKeyframe(timeSec, value));
+      });
+    },
+    [updateTimeline]
+  );
+
+  const deleteTimelineKeyframe = useCallback(
+    (trackId: string, joint: string, keyframeId: string) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        const curve = track?.clips[0]?.curves.find((item) => item.joint === joint);
+        if (!curve) return;
+        curve.keyframes = curve.keyframes.filter((item) => item.id !== keyframeId);
+      });
+    },
+    [updateTimeline]
+  );
+
+  const moveTimelineKeyframe = useCallback(
+    (trackId: string, joint: string, keyframeId: string, timeSec: number) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        const curve = track?.clips[0]?.curves.find((item) => item.joint === joint);
+        if (!curve) return;
+        const target = curve.keyframes.find((item) => item.id === keyframeId);
+        if (!target) return;
+        target.timeSec = Math.max(0, Number.isFinite(timeSec) ? timeSec : target.timeSec);
+      });
+    },
+    [updateTimeline]
+  );
+
+  const updateTimelineBezierHandle = useCallback(
+    (
+      trackId: string,
+      joint: string,
+      keyframeId: string,
+      side: "inHandle" | "outHandle",
+      axis: "dt" | "dv",
+      value: number
+    ) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        const curve = track?.clips[0]?.curves.find((item) => item.joint === joint);
+        const target = curve?.keyframes.find((item) => item.id === keyframeId);
+        if (!target) return;
+        target[side][axis] = Number.isFinite(value) ? value : target[side][axis];
+      });
+    },
+    [updateTimeline]
+  );
+
+  const setTrackWeight = useCallback(
+    (trackId: string, weight: number) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        if (!track) return;
+        track.weight = Math.max(0, Math.min(1, weight));
+      });
+    },
+    [updateTimeline]
+  );
+
+  const toggleTrackEnabled = useCallback(
+    (trackId: string, enabled: boolean) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        if (!track) return;
+        track.enabled = enabled;
+      });
+    },
+    [updateTimeline]
+  );
+
+  const smoothTimelineJoint = useCallback(
+    (trackId: string, joint: string) => {
+      updateTimeline((draft) => {
+        const track = draft.tracks.find((item) => item.id === trackId);
+        const curve = track?.clips[0]?.curves.find((item) => item.joint === joint);
+        if (!curve || curve.keyframes.length < 3) return;
+        const next = [...curve.keyframes].sort((a, b) => a.timeSec - b.timeSec);
+        for (let i = 1; i < next.length - 1; i++) {
+          const prev = next[i - 1]!;
+          const cur = next[i]!;
+          const after = next[i + 1]!;
+          const mean = (prev.valueRad + cur.valueRad + after.valueRad) / 3;
+          cur.valueRad = cur.valueRad + (mean - cur.valueRad) * 0.45;
+        }
+        curve.keyframes = next;
+      });
+      toast.success(t("pose.timelineJointSmoothed"));
+    },
+    [t, updateTimeline]
+  );
+
+  const buildNlaFromLocalRecording = useCallback((frames: LiveRecorderFrame[]) => {
+    if (frames.length < 2) return;
+    const baseTs = frames[0]!.timestamp_ms;
+    const rawPoses: JointAngles[] = [];
+    for (const frame of frames) {
+      rawPoses.push({ ...frame.joint_angles_rad });
+    }
+    const smoothed = smoothNoisySegment(rawPoses, 0.45);
+    const step = Math.max(0.01, ((frames[1]!.timestamp_ms - baseTs) / 1000) || (1 / NLA_PREVIEW_SAMPLE_HZ));
+    const timeline = migrateSavedPosesToNlaTimeline(smoothed, {
+      stepSec: step,
+      fps: NLA_PREVIEW_SAMPLE_HZ,
+    });
+    setNlaTimeline(timeline);
+    setTimelineTimeSec(0);
+    toast.success(t("pose.timelineImported"));
+  }, [t]);
+
   const effectiveNames = useMemo(() => {
     let n = 0;
     for (const k of Object.keys(names)) {
@@ -248,6 +436,14 @@ export default function PoseStudio() {
     }
     return n >= 29 ? names : FALLBACK_JOINT_MAP;
   }, [names]);
+
+  useEffect(() => {
+    const track = nlaTimeline.tracks.find((item) => item.id === selectedTrackId);
+    if (!track) return;
+    if (!track.joints.includes(selectedTrackJoint) && track.joints.length > 0) {
+      setSelectedTrackJoint(track.joints[0]!);
+    }
+  }, [nlaTimeline, selectedTrackId, selectedTrackJoint]);
 
   const wasmFallbackGroups = useMemo(
     () => [
@@ -275,9 +471,16 @@ export default function PoseStudio() {
         if (r) ranges[sk] = r;
       }
       setWasmRanges(ranges);
-      setWasmJointRad(qposToSkillJointAngles(model as never, data as { qpos: Float64Array }));
+      const initialPose = qposToSkillJointAngles(model as never, data as { qpos: Float64Array });
+      setWasmJointRad(initialPose);
       setWasmReady(true);
       setWasmViewerError(null);
+      setNlaTimeline(
+        migrateSavedPosesToNlaTimeline([captureFullJointAnglesSkillKeys(initialPose)], {
+          stepSec: KEYFRAME_TIMESTAMP_STEP_S,
+          fps: NLA_PREVIEW_SAMPLE_HZ,
+        })
+      );
     },
     [effectiveNames]
   );
@@ -377,7 +580,7 @@ export default function PoseStudio() {
             <button
               type="button"
               className="ps-minibar-btn ps-minibar-btn--action"
-              disabled={savedWasmPoses.length === 0 || !wasmReady || wasmMotionPlaying || liveTrackEnabled}
+              disabled={timelineEndSec <= 0 || !wasmReady || wasmMotionPlaying || liveTrackEnabled}
               onClick={() => void playWasmMotion()}
               title={t("pose.createMotion")}
             >
@@ -450,6 +653,7 @@ export default function PoseStudio() {
             onLiveTrackChange={setLiveTrackEnabled}
             onJointAnglesUpdate={onLiveTrackAngles}
             onLandmarksArtifactUploaded={setLandmarksArtifact}
+            onLocalRecordingAvailable={buildNlaFromLocalRecording}
           />
           <MotionPipelinePanel
             apiMeta={apiMeta}
@@ -502,6 +706,25 @@ export default function PoseStudio() {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
           </div>
+
+          <PoseTimeline
+            timeline={nlaTimeline}
+            currentTimeSec={timelineTimeSec}
+            maxTimeSec={Math.max(timelineEndSec, 2)}
+            disabled={wasmMotionPlaying || liveTrackEnabled}
+            selectedTrackId={selectedTrackId}
+            selectedJoint={selectedTrackJoint}
+            onCurrentTimeChange={setTimelineTimeSec}
+            onSelectTrack={(trackId) => setSelectedTrackId(trackId as NlaTrackId)}
+            onSelectJoint={setSelectedTrackJoint}
+            onAddKeyframe={addTimelineKeyframe}
+            onDeleteKeyframe={deleteTimelineKeyframe}
+            onMoveKeyframe={moveTimelineKeyframe}
+            onUpdateBezierHandle={updateTimelineBezierHandle}
+            onSetTrackWeight={setTrackWeight}
+            onToggleTrack={toggleTrackEnabled}
+            onSmoothJoint={smoothTimelineJoint}
+          />
 
           {/* Joints card */}
           <div className="ps-card ps-card--joints">

@@ -1,5 +1,7 @@
 import type { JointAngles } from "./telemetryTypes";
 import { SKILL_KEYS_IN_JOINT_MAP_ORDER } from "../mujoco/jointMapping";
+import type { NlaTimeline } from "./nlaTimeline";
+import { sampleNlaTimeline } from "./nlaEvaluation";
 
 /**
  * React Router `location.state`: prefill keyframes JSON (Phase 0) from Motion Studio → Authoring / Pipeline.
@@ -113,4 +115,37 @@ export function stringifySdkPoseJson(posesDeg: Record<string, number>[]): string
 
 export function stringifyKeyframesDocument(doc: Record<string, unknown>): string {
   return `${JSON.stringify(doc, null, 2)}\n`;
+}
+
+export function buildKeyframesDocumentFromNlaTimeline(
+  timeline: NlaTimeline,
+  opts: BuildKeyframesFromPosesOptions & { sampleRateHz?: number; smoothAlpha?: number } = {}
+): Record<string, unknown> {
+  const sampled = sampleNlaTimeline(timeline, {
+    sampleRateHz: opts.sampleRateHz,
+    smoothAlpha: opts.smoothAlpha,
+  });
+  if (sampled.poses.length === 0) {
+    throw new Error("timeline produced no poses");
+  }
+  const schema_version = opts.schemaVersion ?? "1.0.0";
+  const robot_model = opts.robotModel ?? "g1_29dof";
+  const keyframes = sampled.poses.map((pose, index) => ({
+    timestamp_s: sampled.timestampsSec[index] ?? index * (opts.timestampStepS ?? 0.5),
+    joints_deg: jointAnglesRadToJointsDegPhase0(pose),
+  }));
+  return {
+    schema_version,
+    robot_model,
+    units: { angle: "degrees", time: "seconds" },
+    keyframes,
+  };
+}
+
+export function buildSdkPoseJsonArrayFromNlaTimeline(
+  timeline: NlaTimeline,
+  sampleRateHz?: number
+): Record<string, number>[] {
+  const sampled = sampleNlaTimeline(timeline, { sampleRateHz });
+  return buildSdkPoseJsonArray(sampled.poses);
 }

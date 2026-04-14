@@ -717,3 +717,72 @@ export function motionCaptureWebSocketUrl(): string {
   const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${wsProto}//${window.location.hostname}:8001/ws/capture`;
 }
+
+// --- YouTube Video Ingestion API ---
+
+export type VideoIngestRequest = {
+  youtube_url: string;
+  start_sec?: number | null;
+  end_sec?: number | null;
+  max_duration_sec?: number;
+};
+
+export type VideoIngestResponse = {
+  video_id: string;
+  duration_sec: number;
+  fps: number;
+  width: number;
+  height: number;
+  title: string;
+  artifact_path: string;
+};
+
+export type VideoMetadata = VideoIngestResponse & {
+  youtube_video_id?: string;
+  sha256?: string;
+  source_url?: string;
+};
+
+export type VideoProcessRequest = {
+  video_id: string;
+  target_fps?: number;
+  start_sec?: number | null;
+  end_sec?: number | null;
+};
+
+export type VideoProcessJobResult = {
+  status: string;
+  frame_count?: number;
+  valid_frame_count?: number;
+  confidence_mean?: number;
+  missing_frame_ratio?: number;
+  duration_sec?: number;
+  fps?: number;
+  landmarks_artifact?: string;
+};
+
+export async function ingestYouTubeVideo(body: VideoIngestRequest): Promise<VideoIngestResponse> {
+  const r = await apiFetch("/api/video/ingest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await readApiErrorMessage(r));
+  return r.json() as Promise<VideoIngestResponse>;
+}
+
+export async function getVideoMetadata(videoId: string): Promise<VideoMetadata> {
+  const r = await apiFetch(`/api/video/${encodeURIComponent(videoId)}`);
+  if (!r.ok) throw new Error(await readApiErrorMessage(r));
+  return r.json() as Promise<VideoMetadata>;
+}
+
+export async function enqueueVideoProcess(body: VideoProcessRequest): Promise<{ job_id: string }> {
+  const r = await apiFetch("/api/video/process", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await readApiErrorMessage(r));
+  return r.json() as Promise<{ job_id: string }>;
+}

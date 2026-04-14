@@ -33,6 +33,15 @@ npm run dev
 
 - **Экспорт keyframes:** углы из симуляции приводятся к Phase 0 `joints_deg` с ключами `"0"`…`"28"` (`src/lib/poseAuthoringBridge.ts`, маппинг суставов — `src/mujoco/jointMapping.ts`); в режиме 3D можно добавить до трёх сохранённых поз и скачать отдельно SDK-файл `pose.json`. Экспорт в Авторинг — через `poseAuthoringBridge`, как и для телеметрии.
 
+### Pose Studio NLA timeline (tracks + Bezier)
+
+- **Новая модель:** `src/lib/nlaTimeline.ts` хранит NLA-состояние (tracks/clips/joint curves/keyframes with in/out Bezier handles), треки по умолчанию: `hands`, `legs`, `torso`.
+- **Оценка и микширование:** `src/lib/nlaEvaluation.ts` вычисляет позу по времени через cubic Bezier и track mixer (с `weight` + `enabled` на треке), затем может применить локальное smoothing noisy-сегментов.
+- **UI редактор:** `src/components/pose-timeline/PoseTimeline.tsx` встроен в `src/pages/PoseStudio.tsx`; поддерживает scrubber, выбор трека/сустава, добавление/удаление keyframe, правку `in/out dt,dv`, сдвиг keyframe по времени.
+- **Импорт из live-recording:** `MotionCapturePanel` передаёт `local_joint_recording` обратно в Pose Studio; запись автоматически преобразуется в черновой NLA-клип и может быть доработана в таймлайне.
+- **Экспорт совместим с текущим backend:** NLA не ломает контракты — `buildKeyframesDocumentFromNlaTimeline` и `buildSdkPoseJsonArrayFromNlaTimeline` семплируют таймлайн в обычные Phase 0 `keyframes` и legacy `pose.json`.
+- **Schema для хранения проекта таймлайна:** `public/contracts/authoring/nla_timeline.schema.json` (опциональный артефакт для save/load editor state; не заменяет `keyframes.schema.json`).
+
 ## Базовый URL API (`VITE_API_BASE`)
 
 | Режим | Значение | Поведение |

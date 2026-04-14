@@ -6,6 +6,7 @@ import { LiveCalibration } from "../components/LiveCalibration";
 import { LiveModeCamera } from "../components/LiveModeCamera";
 import { useCameraCapture } from "../hooks/useCameraCapture";
 import { useLiveRecorder } from "../hooks/useLiveRecorder";
+import type { LiveRecorderFrame } from "../hooks/useLiveRecorder";
 import { type RecordingResult, useMotionCaptureWs } from "../hooks/useMotionCaptureWs";
 import { usePoseLandmarker } from "../hooks/usePoseLandmarker";
 import { LIVE_MODE_DEFAULTS } from "../lib/liveContracts";
@@ -17,6 +18,7 @@ type MotionCapturePanelProps = {
   onRecordingComplete?: (result: RecordingResult) => void;
   /** Called after landmarks JSON is saved to the platform artifact store (same X-User-Id as the motion pipeline). */
   onLandmarksArtifactUploaded?: (artifactName: string) => void;
+  onLocalRecordingAvailable?: (frames: LiveRecorderFrame[]) => void;
   motionCaptureUrl?: string;
 };
 
@@ -33,6 +35,7 @@ export function MotionCapturePanel({
   onJointAnglesUpdate,
   onRecordingComplete,
   onLandmarksArtifactUploaded,
+  onLocalRecordingAvailable,
   motionCaptureUrl,
 }: MotionCapturePanelProps) {
   const { t } = useTranslation();
@@ -86,6 +89,15 @@ export function MotionCapturePanel({
     if (!Array.isArray(row0) || row0.length !== 3) return;
     landmarksBufferRef.current.push(cloneLandmarksFrame(lm as number[][]));
   }, [ws.isRecording, ws.latestPose]);
+
+  useEffect(() => {
+    if (!localRecorder.isRecording || ws.isRecording) return;
+    const lm = poseLandmarker.landmarks;
+    if (!Array.isArray(lm) || lm.length !== 33) return;
+    const row0 = lm[0];
+    if (!Array.isArray(row0) || row0.length !== 3) return;
+    landmarksBufferRef.current.push(cloneLandmarksFrame(lm as number[][]));
+  }, [localRecorder.isRecording, poseLandmarker.landmarks, ws.isRecording]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -150,11 +162,12 @@ export function MotionCapturePanel({
   }, [motionCaptureUrl, pendingConnect, ws]);
 
   const handleStartCamera = useCallback(async () => {
-    if (!enabled) return;
     const started = await camera.startCapture();
     if (!started) return;
-    setIsCalibrating(true);
-    setPendingConnect(true);
+    if (enabled) {
+      setIsCalibrating(true);
+      setPendingConnect(true);
+    }
   }, [camera, enabled]);
 
   const handleStopCamera = useCallback(() => {
@@ -174,6 +187,7 @@ export function MotionCapturePanel({
   const handleStopRecording = useCallback(async () => {
     const result = ws.isConnected ? await ws.stopRecording() : null;
     const localFrames = localRecorder.stop();
+    onLocalRecordingAvailable?.(localFrames);
     if (result && onRecordingComplete) {
       onRecordingComplete(result);
     }
@@ -250,7 +264,6 @@ export function MotionCapturePanel({
               <button
                 type="button"
                 className="secondary"
-                disabled={!enabled}
                 onClick={() => void handleStartCamera()}
               >
                 {t("pose.motionCaptureStartCamera")}
@@ -260,11 +273,10 @@ export function MotionCapturePanel({
                 <button type="button" className="secondary" onClick={handleStopCamera}>
                   {t("pose.motionCaptureStopCamera")}
                 </button>
-                {!ws.isRecording ? (
+                {!ws.isRecording && !localRecorder.isRecording ? (
                   <button
                     type="button"
                     className="secondary"
-                    disabled={!enabled || !ws.isConnected}
                     onClick={handleStartRecording}
                   >
                     {t("pose.motionCaptureStartRecording")}

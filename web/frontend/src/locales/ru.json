@@ -409,6 +409,8 @@
     "motionCaptureUnavailable": "Ретаргетинг недоступен на этом бэкенде",
     "liveModeToggle": "Live Mode",
     "ddsModeWarning": "На бэкенде telemetry_mode=dds. В Pose Studio может использоваться mock-симуляция, если DDS-мост не активен.",
+    "timelineImported": "Локальная запись импортирована в NLA-таймлайн",
+    "timelineJointSmoothed": "Выбранный диапазон сустава сглажен",
     "motionCaptureLandmarksSaved": "Сохранено кадров позы: {{count}}, артефакт «{{name}}». Нажмите «Собрать референс из landmarks» в панели пайплайна.",
     "motionCaptureLandmarksSaveFail": "Не удалось сохранить артефакт с landmarks",
     "fallbackGroups": {
