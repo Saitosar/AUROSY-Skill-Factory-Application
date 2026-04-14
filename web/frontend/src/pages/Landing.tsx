@@ -732,34 +732,34 @@ export function LandingProduct() {
   );
 }
 
-const PLANS = [
-  { name: "Free", price: "$0", features: ["1 project", "Browser simulation", "Community support"] },
-  { name: "Pro", price: "$49", features: ["Unlimited projects", "RL training", "Priority support", "Team collaboration"], highlight: true },
-  { name: "Enterprise", price: "Custom", features: ["Dedicated instance", "On-premise deploy", "Custom integrations", "24/7 support"] },
+const FREE_PLAN_FEATURES = [
+  "5 skill creations / month",
+  "RL training",
+  "24/7 support",
+  "Beta testing",
+  "AI Text to Motion",
 ];
 
 export function LandingPricing() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
 
-  const handleSelectPlan = (planName: string) => {
-    if (planName === "Enterprise") return;
+  const handleStart = () => {
     if (user) {
       navigate("/app/pose");
       return;
     }
-    setSelectedPlan(planName);
+    setShowAuth(true);
   };
 
   return (
     <PageTransition direction="right">
-      <div className="flex h-full items-center px-6 lg:px-12 xl:px-20 pb-20">
-        <div className="max-w-[1100px] mx-auto w-full">
+      <div className="flex h-full items-center justify-center px-6 lg:px-12 xl:px-20 pb-20">
+        <div className="max-w-[480px] w-full">
 
           {/* Headline */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-10">
             <h2
               className="text-3xl font-bold mb-3"
               style={{
@@ -769,177 +769,111 @@ export function LandingPricing() {
                 backgroundClip: "text",
               }}
             >
-              Three steps to your first robot skill
+              Start building for free
             </h2>
-            <p className="text-gray-400 text-base max-w-lg mx-auto">
-              No PhD required. Pick a plan, sign up, and start building production-ready skills in minutes — not months.
+            <p className="text-gray-400 text-base max-w-md mx-auto">
+              No credit card required. Get full access to the platform for 6 months and create production-ready robot skills today.
             </p>
           </div>
 
-          {/* 3 Steps */}
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            {[
-              { num: "1", label: "Choose a plan", color: "#22d3ee" },
-              { num: "2", label: "Create account", color: "#a78bfa" },
-              { num: "3", label: "Build robot skills", color: "#4ade80" },
-            ].map((step, i) => (
-              <div key={i} className="flex items-center gap-4">
-                <span
-                  className="text-[32px] font-black font-mono leading-none"
-                  style={{
-                    backgroundImage: `linear-gradient(135deg, ${step.color}, ${step.color}88)`,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                    filter: `drop-shadow(0 0 12px ${step.color}50)`,
-                  }}
-                >
-                  {step.num}
-                </span>
-                <span className="text-gray-300 text-sm font-medium leading-tight">{step.label}</span>
-                {i < 2 && (
-                  <div className="flex-1 h-px ml-2" style={{ background: `linear-gradient(90deg, ${step.color}40, transparent)` }} />
-                )}
-              </div>
-            ))}
-          </div>
+          {/* Single plan card */}
+          <div
+            className="relative rounded-2xl p-8 border"
+            style={{
+              borderColor: "#a78bfa",
+              boxShadow: "0 0 60px rgba(167,139,250,0.15), 0 0 120px rgba(167,139,250,0.08)",
+              background: "rgba(167,139,250,0.04)",
+            }}
+          >
+            {/* Badge */}
+            <div
+              className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1 rounded-full text-xs font-bold tracking-wider"
+              style={{
+                backgroundImage: "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80)",
+                color: "#0d1117",
+                boxShadow: "0 0 16px rgba(167,139,250,0.4)",
+              }}
+            >
+              6 MONTHS FREE
+            </div>
 
-          {/* Plans */}
-          <div className="grid md:grid-cols-3 gap-5 w-full items-start">
-            {PLANS.map((plan) => {
-              const isPro = plan.highlight;
-              const cardColors = isPro
-                ? { border: "#a78bfa", glow: "rgba(167,139,250,0.15)", check: "#a78bfa" }
-                : plan.name === "Free"
-                ? { border: "#22d3ee33", glow: "none", check: "#22d3ee" }
-                : { border: "#4ade8033", glow: "none", check: "#4ade80" };
+            {/* Plan name */}
+            <h3
+              className="text-xl font-semibold mb-1 mt-2"
+              style={{
+                backgroundImage: "linear-gradient(90deg, #a78bfa, #e879f9)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Free Plan
+            </h3>
 
-              return (
-                <div
-                  key={plan.name}
-                  className="relative rounded-2xl p-6 border group"
-                  style={{
-                    borderColor: (hoveredPlan === plan.name || (!hoveredPlan && isPro)) ? cardColors.check : cardColors.border,
-                    boxShadow: (hoveredPlan === plan.name || (!hoveredPlan && isPro))
-                      ? `0 0 40px ${cardColors.check}25, 0 0 80px ${cardColors.check}15`
-                      : "none",
-                    background: (hoveredPlan === plan.name || (!hoveredPlan && isPro))
-                      ? `${cardColors.check}0a`
-                      : "rgba(255,255,255,0.02)",
-                    transform: (hoveredPlan === plan.name || (!hoveredPlan && isPro))
-                      ? "scale(1.05)"
-                      : hoveredPlan ? "scale(0.97)" : "scale(1)",
-                    transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-                    zIndex: (hoveredPlan === plan.name || (!hoveredPlan && isPro)) ? 10 : 1,
-                  }}
-                  onMouseEnter={() => setHoveredPlan(plan.name)}
-                  onMouseLeave={() => setHoveredPlan(null)}
-                >
-                  {/* Popular badge */}
-                  {isPro && (
-                    <div
-                      className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold tracking-wider"
-                      style={{
-                        backgroundImage: "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80)",
-                        color: "#0d1117",
-                        boxShadow: "0 0 16px rgba(167,139,250,0.4)",
-                      }}
-                    >
-                      POPULAR
-                    </div>
-                  )}
+            {/* Price */}
+            <div className="mb-6">
+              <span
+                className="text-5xl font-black"
+                style={{
+                  backgroundImage: "linear-gradient(180deg, #ffffff, #9ca3af)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                $0
+              </span>
+              <span className="text-sm text-gray-500 ml-2">for 6 months</span>
+            </div>
 
-                  <h3
-                    className="text-lg font-semibold mb-1"
-                    style={{
-                      backgroundImage: isPro
-                        ? "linear-gradient(90deg, #a78bfa, #e879f9)"
-                        : plan.name === "Free"
-                        ? "linear-gradient(90deg, #22d3ee, #67e8f9)"
-                        : "linear-gradient(90deg, #4ade80, #34d399)",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      backgroundClip: "text",
-                    }}
-                  >
-                    {plan.name}
-                  </h3>
-                  <div className="mb-6">
-                    <span
-                      className="text-4xl font-black"
-                      style={{
-                        backgroundImage: "linear-gradient(180deg, #ffffff, #9ca3af)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
-                      }}
-                    >
-                      {plan.price}
-                    </span>
-                    {plan.price !== "Custom" && <span className="text-sm text-gray-500 ml-1">/mo</span>}
-                  </div>
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((f) => (
-                      <li key={f} className="text-gray-400 text-sm flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cardColors.check} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    onClick={() => handleSelectPlan(plan.name)}
-                    className="w-full py-3 rounded-full text-sm font-bold cursor-pointer transition-all"
-                    style={{
-                      background: isPro
-                        ? "linear-gradient(90deg, #a78bfa, #e879f9)"
-                        : "transparent",
-                      border: isPro ? "none" : `1px solid ${cardColors.check}60`,
-                      color: isPro ? "#0d1117" : cardColors.check,
-                      boxShadow: isPro ? "0 0 20px rgba(167,139,250,0.3)" : "none",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (isPro) {
-                        e.currentTarget.style.boxShadow = "0 0 30px rgba(167,139,250,0.5)";
-                        e.currentTarget.style.background = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
-                        e.currentTarget.style.backgroundSize = "200% 100%";
-                        e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
-                      } else {
-                        e.currentTarget.style.background = `${cardColors.check}15`;
-                        e.currentTarget.style.borderColor = cardColors.check;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (isPro) {
-                        e.currentTarget.style.boxShadow = "0 0 20px rgba(167,139,250,0.3)";
-                        e.currentTarget.style.background = "linear-gradient(90deg, #a78bfa, #e879f9)";
-                        e.currentTarget.style.backgroundSize = "100% 100%";
-                        e.currentTarget.style.animation = "none";
-                      } else {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.borderColor = `${cardColors.check}60`;
-                      }
-                    }}
-                  >
-                    {plan.name === "Enterprise" ? "Contact us" : user ? "Go to Studio" : "Get started"}
-                  </button>
-                </div>
-              );
-            })}
+            {/* Features */}
+            <ul className="space-y-4 mb-8">
+              {FREE_PLAN_FEATURES.map((f) => (
+                <li key={f} className="text-gray-300 text-sm flex items-center gap-3">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            {/* CTA */}
+            <button
+              onClick={handleStart}
+              className="w-full py-3.5 rounded-full text-sm font-bold cursor-pointer transition-all"
+              style={{
+                background: "linear-gradient(90deg, #a78bfa, #e879f9)",
+                color: "#0d1117",
+                boxShadow: "0 0 20px rgba(167,139,250,0.3)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 30px rgba(167,139,250,0.5)";
+                e.currentTarget.style.background = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+                e.currentTarget.style.backgroundSize = "200% 100%";
+                e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(167,139,250,0.3)";
+                e.currentTarget.style.background = "linear-gradient(90deg, #a78bfa, #e879f9)";
+                e.currentTarget.style.backgroundSize = "100% 100%";
+                e.currentTarget.style.animation = "none";
+              }}
+            >
+              {user ? "Go to Studio" : "Start free trial"}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Registration modal */}
-      {selectedPlan && !user && (
+      {showAuth && !user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedPlan(null)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAuth(false)} />
           <div className="relative w-full max-w-xl mx-4">
             <AuthForm
               initialTab="register"
               showTabs={false}
-              planName={selectedPlan}
-              onClose={() => setSelectedPlan(null)}
+              planName="Free Plan — 6 months"
+              onClose={() => setShowAuth(false)}
               onSuccess={() => navigate("/app/pose")}
             />
           </div>
