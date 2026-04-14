@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useState, useEffect, useCallback, FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -44,6 +44,73 @@ function trialStatus(trial_ends_at: string | null) {
   return <span className="text-purple-300 text-xs font-medium">{days}d left</span>;
 }
 
+function AdminLogin() {
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await login(email, password);
+    } catch (err: any) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0B0F14] px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span className="text-xl font-bold text-purple-400">Admin Panel</span>
+          </div>
+          <p className="text-gray-500 text-sm">Sign in with admin credentials</p>
+        </div>
+        <div className="bg-[#161a22] rounded-2xl p-8 border border-white/[0.08]">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>
+            )}
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              placeholder="Admin email"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+              placeholder="Password"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const { user, token } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -74,8 +141,21 @@ export default function AdminPanel() {
     fetchUsers();
   }, [fetchUsers]);
 
-  if (!user || user.role !== "admin") {
-    return <Navigate to="/" replace />;
+  if (!user) {
+    return <AdminLogin />;
+  }
+
+  if (user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B0F14] px-4">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🚫</div>
+          <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
+          <p className="text-gray-400 mb-6">Admin privileges required.</p>
+          <Link to="/" className="text-purple-400 hover:text-purple-300 text-sm">Back to home</Link>
+        </div>
+      </div>
+    );
   }
 
   const showToast = (msg: string) => {

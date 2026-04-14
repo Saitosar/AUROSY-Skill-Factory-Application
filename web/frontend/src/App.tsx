@@ -122,11 +122,7 @@ export default function App() {
       <Route path="/company" element={<LandingLayout><LandingCompany /></LandingLayout>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/panel" element={
-        <ProtectedRoute>
-          <AdminPanel />
-        </ProtectedRoute>
-      } />
+      <Route path="/panel" element={<AdminPanel />} />
 
       {/* ── Protected: App pages (with topbar) ── */}
       <Route path="/app/*" element={
