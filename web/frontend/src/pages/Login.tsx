@@ -16,7 +16,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/");
+      navigate("/app/pose");
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {

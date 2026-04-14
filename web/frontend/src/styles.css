@@ -2646,3 +2646,20 @@ tr.joint-row-selected td {
 .table-wrap {
   overflow-x: auto;
 }
+
+/* ── Landing page floating badge animations ── */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+.animate-float-slow { animation: float-slow 5s ease-in-out infinite; }
+.animate-float-medium { animation: float-medium 4s ease-in-out infinite 0.5s; }
+.animate-float-fast { animation: float-fast 3.5s ease-in-out infinite 1s; }

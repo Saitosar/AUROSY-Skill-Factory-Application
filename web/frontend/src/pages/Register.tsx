@@ -28,7 +28,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register({ email, password, name });
-      navigate("/");
+      navigate("/app/pose");
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
