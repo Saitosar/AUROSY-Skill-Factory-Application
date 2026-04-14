@@ -20,6 +20,21 @@ interface AdminUser {
   created_at: string;
 }
 
+interface AdminProject {
+  id: number;
+  name: string;
+  description: string;
+  robot_model: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+interface ClientDetail extends AdminUser {
+  avatar_url: string;
+  projects_count: number;
+  projects: AdminProject[];
+}
+
 const ROLES = ["user", "admin", "moderator"] as const;
 const PLANS = ["free", "trial", "pro", "enterprise"] as const;
 
@@ -121,7 +136,7 @@ function AdminLogin() {
 }
 
 /* ── Clients Section ── */
-function UsersSection({ token, showToast }: { token: string; showToast: (m: string) => void }) {
+function UsersSection({ token, showToast, onOpenClient }: { token: string; showToast: (m: string) => void; onOpenClient: (id: number) => void }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -241,7 +256,7 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
               </thead>
               <tbody>
                 {filtered.map((u) => (
-                  <tr key={u.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                  <tr key={u.id} onClick={() => onOpenClient(u.id)} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors cursor-pointer">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-sm font-semibold flex-shrink-0">
@@ -258,7 +273,7 @@ function UsersSection({ token, showToast }: { token: string; showToast: (m: stri
                     <td className="px-5 py-4">{roleBadge(u.role)}</td>
                     <td className="px-5 py-4 text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => setEditUser(u)} disabled={actionLoading === u.id} className="p-2 rounded-lg text-gray-400 hover:text-purple-300 hover:bg-purple-500/10 transition-all cursor-pointer disabled:opacity-50" title="Edit user">{Icons.edit}</button>
                         <button onClick={() => setPwUser(u)} className="p-2 rounded-lg text-gray-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer" title="Change password">{Icons.key}</button>
                         <button onClick={() => updateUser(u.id, { plan: "trial", trial_days: 20 })} disabled={actionLoading === u.id} className="p-2 rounded-lg text-gray-400 hover:text-purple-300 hover:bg-purple-500/10 transition-all cursor-pointer disabled:opacity-50" title="Give 20-day trial">{Icons.clock}</button>
@@ -550,6 +565,285 @@ function CreateUserForm({ token, onCreated, onError }: { token: string; onCreate
   );
 }
 
+/* ── Client Profile ── */
+function ClientProfile({ clientId, token, showToast, onBack }: { clientId: number; token: string; showToast: (m: string) => void; onBack: () => void }) {
+  const [client, setClient] = useState<ClientDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [extendDays, setExtendDays] = useState(20);
+  const [extendPlan, setExtendPlan] = useState("trial");
+  const [extending, setExtending] = useState(false);
+  const [editUser, setEditUser] = useState<AdminUser | null>(null);
+  const [pwUser, setPwUser] = useState<AdminUser | null>(null);
+  const [newPw, setNewPw] = useState("");
+
+  const fetchClient = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${clientId}`), { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to load client");
+      setClient(await res.json());
+    } catch { showToast("Failed to load client"); onBack(); }
+    finally { setLoading(false); }
+  }, [clientId, token]);
+
+  useEffect(() => { fetchClient(); }, [fetchClient]);
+
+  const extendSubscription = async () => {
+    setExtending(true);
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${clientId}/extend`), {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: extendPlan, days: extendDays }),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Failed"); }
+      showToast(`Subscription extended by ${extendDays} days`);
+      await fetchClient();
+    } catch (e: any) { showToast(`Error: ${e.message}`); }
+    finally { setExtending(false); }
+  };
+
+  const updateClient = async (data: Record<string, any>) => {
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${clientId}`), {
+        method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Failed"); }
+      showToast("Client updated");
+      setEditUser(null);
+      await fetchClient();
+    } catch (e: any) { showToast(`Error: ${e.message}`); }
+  };
+
+  const changePassword = async () => {
+    if (newPw.length < 6) { showToast("Password must be at least 6 characters"); return; }
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${clientId}/password`), {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ new_password: newPw }),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || "Failed"); }
+      showToast("Password changed");
+      setPwUser(null); setNewPw("");
+    } catch (e: any) { showToast(`Error: ${e.message}`); }
+  };
+
+  if (loading || !client) return <div className="text-center py-20 text-gray-500">Loading client...</div>;
+
+  const trialEnd = client.trial_ends_at ? new Date(client.trial_ends_at) : null;
+  const now = new Date();
+  const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const accountAge = Math.floor((now.getTime() - new Date(client.created_at).getTime()) / (1000 * 60 * 60 * 24));
+
+  return (
+    <>
+      {/* Back button + header */}
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-6 transition-colors cursor-pointer group">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:-translate-x-0.5 transition-transform"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Clients
+      </button>
+
+      {/* Profile Header */}
+      <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6 mb-6">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600/30 to-purple-800/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-2xl font-bold">
+              {(client.name || client.email).charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{client.name || "—"}</h2>
+              <p className="text-gray-400 text-sm mt-0.5">{client.email}</p>
+              <div className="flex items-center gap-2 mt-2">
+                {planBadge(client.plan)}
+                {client.user_type && client.user_type !== "individual" && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border bg-blue-500/15 text-blue-300 border-blue-500/25">{client.user_type}</span>
+                )}
+                {client.industry && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border bg-gray-500/15 text-gray-300 border-gray-500/25">{client.industry}</span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setEditUser(client)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer">{Icons.edit} Edit</button>
+            <button onClick={() => setPwUser(client)} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer">{Icons.key} Password</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Subscription */}
+        <div className="lg:col-span-2 bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">{Icons.star} Subscription</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04]">
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Plan</span>
+              <div className="mt-1">{planBadge(client.plan)}</div>
+            </div>
+            <div className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04]">
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Status</span>
+              <div className="mt-1">
+                {daysLeft === null ? (
+                  <span className="text-gray-400 text-sm">No subscription</span>
+                ) : daysLeft <= 0 ? (
+                  <span className="text-red-400 text-sm font-medium">Expired</span>
+                ) : daysLeft <= 3 ? (
+                  <span className="text-amber-400 text-sm font-medium">{daysLeft}d left</span>
+                ) : (
+                  <span className="text-green-400 text-sm font-medium">{daysLeft}d left</span>
+                )}
+              </div>
+            </div>
+            <div className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04]">
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Expires</span>
+              <div className="text-white text-sm mt-1">
+                {trialEnd ? trialEnd.toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+              </div>
+            </div>
+          </div>
+
+          {/* Trial progress bar */}
+          {client.plan === "trial" && trialEnd && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-gray-500">Trial Progress</span>
+                <span className={daysLeft! <= 3 ? "text-amber-400" : "text-purple-300"}>{Math.max(0, daysLeft!)} / 20 days</span>
+              </div>
+              <div className="h-2 bg-[#0B0F14] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${daysLeft! <= 3 ? "bg-amber-500" : daysLeft! <= 0 ? "bg-red-500" : "bg-purple-500"}`}
+                  style={{ width: `${Math.min(100, Math.max(0, ((20 - Math.max(0, daysLeft!)) / 20) * 100))}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Extend subscription */}
+          <div className="border-t border-white/[0.06] pt-5">
+            <h4 className="text-gray-300 text-sm font-medium mb-3">Extend Subscription</h4>
+            <div className="flex items-end gap-3 flex-wrap">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Plan</label>
+                <select value={extendPlan} onChange={(e) => setExtendPlan(e.target.value)}
+                  className="px-3 py-2 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500 transition-colors cursor-pointer">
+                  <option value="trial">Trial</option>
+                  <option value="pro">Pro</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Days</label>
+                <input type="number" value={extendDays} onChange={(e) => setExtendDays(Number(e.target.value))} min={1} max={365}
+                  className="w-20 px-3 py-2 bg-[#0B0F14] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-purple-500 transition-colors" />
+              </div>
+              <div className="flex gap-2">
+                {[7, 14, 30, 90].map((d) => (
+                  <button key={d} onClick={() => setExtendDays(d)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer ${extendDays === d ? "bg-purple-600/20 text-purple-300 border-purple-500/30" : "bg-white/[0.02] text-gray-400 border-white/[0.06] hover:text-white"}`}>
+                    {d}d
+                  </button>
+                ))}
+              </div>
+              <button onClick={extendSubscription} disabled={extending}
+                className="px-5 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-600/50 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed">
+                {extending ? "Extending..." : "Extend"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Metrics */}
+        <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">{Icons.clock} Metrics</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Account Age</span>
+              <span className="text-white text-sm font-medium">{accountAge}d</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Registered</span>
+              <span className="text-white text-sm font-medium">{new Date(client.created_at).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Projects</span>
+              <span className="text-white text-sm font-medium">{client.projects_count}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">Skills Created</span>
+              <span className="text-purple-300 text-sm font-medium">{client.projects_count}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+              <span className="text-gray-400 text-sm">User Type</span>
+              <span className="text-white text-sm font-medium capitalize">{client.user_type || "individual"}</span>
+            </div>
+            {client.industry && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#0B0F14]/60 border border-white/[0.04]">
+                <span className="text-gray-400 text-sm">Industry</span>
+                <span className="text-white text-sm font-medium">{client.industry}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Projects / Skills */}
+      <div className="bg-[#161a22] border border-white/[0.06] rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            Projects & Skills
+          </h3>
+          <span className="text-gray-500 text-sm">{client.projects.length} total</span>
+        </div>
+
+        {client.projects.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-3xl mb-3 opacity-30">📁</div>
+            <p className="text-gray-500 text-sm">No projects created yet</p>
+            <p className="text-gray-600 text-xs mt-1">Projects will appear here when the client starts creating skills</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {client.projects.map((p) => (
+              <div key={p.id} className="bg-[#0B0F14]/60 rounded-xl p-4 border border-white/[0.04] hover:border-purple-500/20 transition-colors">
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="text-white text-sm font-medium truncate flex-1">{p.name}</h4>
+                  {p.robot_model && (
+                    <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/20 ml-2 flex-shrink-0">
+                      {p.robot_model}
+                    </span>
+                  )}
+                </div>
+                {p.description && <p className="text-gray-500 text-xs line-clamp-2 mb-3">{p.description}</p>}
+                <div className="flex items-center justify-between text-[10px] text-gray-600">
+                  <span>Created {new Date(p.created_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>
+                  {p.updated_at && <span>Updated {new Date(p.updated_at).toLocaleDateString("en", { month: "short", day: "numeric" })}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {editUser && (
+        <Modal title={`Edit — ${editUser.email}`} onClose={() => setEditUser(null)}>
+          <EditUserForm user={editUser} onSave={async (data) => { await updateClient(data); }} />
+        </Modal>
+      )}
+
+      {/* Password Modal */}
+      {pwUser && (
+        <Modal title={`Change password — ${pwUser.email}`} onClose={() => { setPwUser(null); setNewPw(""); }}>
+          <div className="space-y-4">
+            <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="New password (min 6 chars)" className="w-full px-4 py-3 bg-[#0B0F14] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors" />
+            <button onClick={changePassword} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-colors cursor-pointer">Change Password</button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 /* ── Modal ── */
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -727,11 +1021,12 @@ function NotificationBell({ token }: { token: string }) {
 }
 
 /* ── Main Admin Panel ── */
-type AdminPage = "users" | "settings";
+type AdminPage = "users" | "settings" | "client-profile";
 
 export default function AdminPanel() {
   const { user, token, logout } = useAuth();
   const [page, setPage] = useState<AdminPage>("users");
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -792,7 +1087,7 @@ export default function AdminPanel() {
           {sidebarItems.map((item) => (
             <button key={item.id} onClick={() => setPage(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                page === item.id ? "bg-purple-600/15 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.1)]" : "text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]"
+                page === item.id || (page === "client-profile" && item.id === "users") ? "bg-purple-600/15 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.1)]" : "text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]"
               }`}>
               {item.icon} {item.label}
             </button>
@@ -809,7 +1104,7 @@ export default function AdminPanel() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 flex-shrink-0 flex items-center justify-between px-8 border-b border-white/[0.06] bg-[#0B0F14]/60 backdrop-blur-xl">
-          <h1 className="text-lg font-semibold text-white capitalize">{page}</h1>
+          <h1 className="text-lg font-semibold text-white capitalize">{page === "client-profile" ? "Client Profile" : page === "users" ? "Clients" : page}</h1>
           <div className="flex items-center gap-2">
           <NotificationBell token={token!} />
           <div className="relative" ref={dropdownRef}>
@@ -839,7 +1134,8 @@ export default function AdminPanel() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-8">
-          {page === "users" && <UsersSection token={token!} showToast={showToast} />}
+          {page === "users" && <UsersSection token={token!} showToast={showToast} onOpenClient={(id) => { setSelectedClientId(id); setPage("client-profile"); }} />}
+          {page === "client-profile" && selectedClientId && <ClientProfile clientId={selectedClientId} token={token!} showToast={showToast} onBack={() => setPage("users")} />}
           {page === "settings" && <SettingsSection token={token!} showToast={showToast} />}
         </main>
       </div>
