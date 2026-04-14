@@ -540,6 +540,24 @@ export function LandingPricing() {
       <div className="flex h-full items-center px-6 lg:px-12 xl:px-20 py-12">
         <div className="max-w-[1100px] mx-auto w-full">
 
+          {/* Headline */}
+          <div className="text-center mb-10">
+            <h2
+              className="text-3xl font-bold mb-3"
+              style={{
+                backgroundImage: "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Three steps to your first robot skill
+            </h2>
+            <p className="text-gray-400 text-base max-w-lg mx-auto">
+              No PhD required. Pick a plan, sign up, and start building production-ready skills in minutes — not months.
+            </p>
+          </div>
+
           {/* 3 Steps */}
           <div className="grid grid-cols-3 gap-8 mb-14">
             {[
