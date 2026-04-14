@@ -40,12 +40,12 @@ body {
 }
 
 a {
-  color: var(--color-primary);
+  color: inherit;
   text-decoration: none;
 }
 
 a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* F11 — :focus-visible: единое кольцо primary; убираем outline при клике мышью */

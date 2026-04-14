@@ -116,10 +116,10 @@ function LandingNav({ activePath }: { activePath: string }) {
             <Link
               key={item.path}
               to={item.path}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium no-underline transition-all duration-200 ${
                 activePath === item.path
-                  ? "text-purple-400"
-                  : "text-gray-400 hover:text-purple-300"
+                  ? "text-purple-400 bg-purple-500/10 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                  : "text-gray-400 hover:text-purple-300 hover:bg-white/[0.06] hover:scale-105"
               }`}
             >
               {item.label}
