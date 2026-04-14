@@ -537,43 +537,160 @@ export function LandingPricing() {
 
   return (
     <PageTransition direction="right">
-      <div className="flex h-full items-center px-6 lg:px-12 xl:px-20">
-        <div className="max-w-[1000px] mx-auto w-full">
-          {/* Plans */}
-          <div className="grid md:grid-cols-3 gap-6 w-full">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-2xl p-8 border transition-all ${
-                  plan.highlight
-                    ? "bg-purple-500/10 border-purple-500/30 shadow-xl shadow-purple-500/10"
-                    : "bg-white/[0.03] border-white/[0.06] hover:border-white/10"
-                }`}
-              >
-                <h3 className="text-lg font-semibold text-white mb-1">{plan.name}</h3>
-                <div className="text-3xl font-bold text-white mb-6">
-                  {plan.price}<span className="text-sm font-normal text-gray-400">{plan.price !== "Custom" ? "/mo" : ""}</span>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((f) => (
-                    <li key={f} className="text-gray-400 text-sm flex items-center gap-2">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.highlight ? "#a855f7" : "#6b7280"} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => handleSelectPlan(plan.name)}
-                  className={`w-full py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                    plan.highlight
-                      ? "bg-purple-600 text-white hover:bg-purple-500"
-                      : "bg-white/[0.06] text-gray-300 hover:bg-white/10 hover:text-white"
-                  }`}
+      <div className="flex h-full items-center px-6 lg:px-12 xl:px-20 py-12">
+        <div className="max-w-[1100px] mx-auto w-full">
+
+          {/* 3 Steps */}
+          <div className="grid grid-cols-3 gap-8 mb-14">
+            {[
+              { num: "1", label: "Choose a plan", color: "#22d3ee" },
+              { num: "2", label: "Create account", color: "#a78bfa" },
+              { num: "3", label: "Build robot skills", color: "#4ade80" },
+            ].map((step, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <span
+                  className="text-[42px] font-black font-mono leading-none"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${step.color}, ${step.color}88)`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    filter: `drop-shadow(0 0 12px ${step.color}50)`,
+                  }}
                 >
-                  {plan.name === "Enterprise" ? "Contact us" : user ? "Go to Studio" : "Get started"}
-                </button>
+                  {step.num}
+                </span>
+                <span className="text-gray-300 text-sm font-medium leading-tight">{step.label}</span>
+                {i < 2 && (
+                  <div className="flex-1 h-px ml-2" style={{ background: `linear-gradient(90deg, ${step.color}40, transparent)` }} />
+                )}
               </div>
             ))}
+          </div>
+
+          {/* Plans */}
+          <div className="grid md:grid-cols-3 gap-6 w-full items-start">
+            {PLANS.map((plan) => {
+              const isPro = plan.highlight;
+              const cardColors = isPro
+                ? { border: "#a78bfa", glow: "rgba(167,139,250,0.15)", check: "#a78bfa" }
+                : plan.name === "Free"
+                ? { border: "#22d3ee33", glow: "none", check: "#22d3ee" }
+                : { border: "#4ade8033", glow: "none", check: "#4ade80" };
+
+              return (
+                <div
+                  key={plan.name}
+                  className="relative rounded-2xl p-8 border transition-all group"
+                  style={{
+                    borderColor: cardColors.border,
+                    boxShadow: isPro ? `0 0 40px ${cardColors.glow}, 0 0 80px ${cardColors.glow}` : "none",
+                    background: isPro ? "rgba(167,139,250,0.06)" : "rgba(255,255,255,0.02)",
+                    transform: isPro ? "scale(1.05)" : "scale(1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isPro) {
+                      e.currentTarget.style.borderColor = cardColors.check;
+                      e.currentTarget.style.boxShadow = `0 0 30px ${cardColors.check}20`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isPro) {
+                      e.currentTarget.style.borderColor = cardColors.border;
+                      e.currentTarget.style.boxShadow = "none";
+                    }
+                  }}
+                >
+                  {/* Popular badge */}
+                  {isPro && (
+                    <div
+                      className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold tracking-wider"
+                      style={{
+                        backgroundImage: "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80)",
+                        color: "#0d1117",
+                        boxShadow: "0 0 16px rgba(167,139,250,0.4)",
+                      }}
+                    >
+                      POPULAR
+                    </div>
+                  )}
+
+                  <h3
+                    className="text-lg font-semibold mb-1"
+                    style={{
+                      backgroundImage: isPro
+                        ? "linear-gradient(90deg, #a78bfa, #e879f9)"
+                        : plan.name === "Free"
+                        ? "linear-gradient(90deg, #22d3ee, #67e8f9)"
+                        : "linear-gradient(90deg, #4ade80, #34d399)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    {plan.name}
+                  </h3>
+                  <div className="mb-6">
+                    <span
+                      className="text-4xl font-black"
+                      style={{
+                        backgroundImage: "linear-gradient(180deg, #ffffff, #9ca3af)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                      }}
+                    >
+                      {plan.price}
+                    </span>
+                    {plan.price !== "Custom" && <span className="text-sm text-gray-500 ml-1">/mo</span>}
+                  </div>
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((f) => (
+                      <li key={f} className="text-gray-400 text-sm flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cardColors.check} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => handleSelectPlan(plan.name)}
+                    className="w-full py-3 rounded-full text-sm font-bold cursor-pointer transition-all"
+                    style={{
+                      background: isPro
+                        ? "linear-gradient(90deg, #a78bfa, #e879f9)"
+                        : "transparent",
+                      border: isPro ? "none" : `1px solid ${cardColors.check}60`,
+                      color: isPro ? "#0d1117" : cardColors.check,
+                      boxShadow: isPro ? "0 0 20px rgba(167,139,250,0.3)" : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isPro) {
+                        e.currentTarget.style.boxShadow = "0 0 30px rgba(167,139,250,0.5)";
+                        e.currentTarget.style.background = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+                        e.currentTarget.style.backgroundSize = "200% 100%";
+                        e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+                      } else {
+                        e.currentTarget.style.background = `${cardColors.check}15`;
+                        e.currentTarget.style.borderColor = cardColors.check;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isPro) {
+                        e.currentTarget.style.boxShadow = "0 0 20px rgba(167,139,250,0.3)";
+                        e.currentTarget.style.background = "linear-gradient(90deg, #a78bfa, #e879f9)";
+                        e.currentTarget.style.backgroundSize = "100% 100%";
+                        e.currentTarget.style.animation = "none";
+                      } else {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderColor = `${cardColors.check}60`;
+                      }
+                    }}
+                  >
+                    {plan.name === "Enterprise" ? "Contact us" : user ? "Go to Studio" : "Get started"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
