@@ -122,9 +122,20 @@ export default function PoseStudio() {
     return [captureFullJointAnglesSkillKeys(mergedForExport)];
   }, [mergedForExport, nlaTimeline]);
 
+  // Only evaluate timeline pose when there are actual clips to play;
+  // otherwise skip to avoid an infinite render loop (empty timeline
+  // just copies basePose → new object → triggers useEffect → loop).
+  const timelineHasClips = useMemo(
+    () => nlaTimeline.tracks.some((t) => t.clips.length > 0),
+    [nlaTimeline]
+  );
+
   const currentTimelinePose = useMemo(
-    () => evaluateNlaPoseAtTime(nlaTimeline, timelineTimeSec, wasmJointRad),
-    [nlaTimeline, timelineTimeSec, wasmJointRad]
+    () =>
+      timelineHasClips
+        ? evaluateNlaPoseAtTime(nlaTimeline, timelineTimeSec, wasmJointRadRef.current)
+        : null,
+    [nlaTimeline, timelineTimeSec, timelineHasClips]
   );
 
   const saveWasmDraft = useCallback(async () => {
@@ -152,6 +163,7 @@ export default function PoseStudio() {
   }, [keyframesListForExport, draftName, nlaTimeline, t]);
 
   useEffect(() => {
+    if (!currentTimelinePose) return;
     if (liveTrackEnabled || wasmMotionPlayingRef.current) return;
     if (!wasmReady) return;
     setWasmJointRad((prev) => ({ ...prev, ...currentTimelinePose }));
