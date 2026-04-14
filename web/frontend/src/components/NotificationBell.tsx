@@ -71,8 +71,8 @@ export default function NotificationBell({ variant = "landing" }: { variant?: "l
         }}
         className={
           isLanding
-            ? "text-gray-500 hover:text-white transition-colors relative cursor-pointer"
-            : "relative p-2 rounded-xl text-gray-400 hover:text-purple-300 hover:bg-white/[0.04] transition-all cursor-pointer"
+            ? "text-gray-500 hover:text-white transition-colors relative cursor-pointer flex items-center"
+            : "relative p-2 rounded-xl text-gray-400 hover:text-purple-300 hover:bg-white/[0.04] transition-all cursor-pointer flex items-center"
         }
       >
         <svg
