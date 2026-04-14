@@ -502,6 +502,7 @@ export function LandingPricing() {
   const [regForm, setRegForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [regError, setRegError] = useState("");
   const [regLoading, setRegLoading] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
 
   const handleSelectPlan = (planName: string) => {
     if (planName === "Enterprise") return;
@@ -599,25 +600,23 @@ export function LandingPricing() {
               return (
                 <div
                   key={plan.name}
-                  className="relative rounded-2xl p-6 border transition-all group"
+                  className="relative rounded-2xl p-6 border group"
                   style={{
-                    borderColor: cardColors.border,
-                    boxShadow: isPro ? `0 0 40px ${cardColors.glow}, 0 0 80px ${cardColors.glow}` : "none",
-                    background: isPro ? "rgba(167,139,250,0.06)" : "rgba(255,255,255,0.02)",
-                    transform: isPro ? "scale(1.05)" : "scale(1)",
+                    borderColor: (hoveredPlan === plan.name || (!hoveredPlan && isPro)) ? cardColors.check : cardColors.border,
+                    boxShadow: (hoveredPlan === plan.name || (!hoveredPlan && isPro))
+                      ? `0 0 40px ${cardColors.check}25, 0 0 80px ${cardColors.check}15`
+                      : "none",
+                    background: (hoveredPlan === plan.name || (!hoveredPlan && isPro))
+                      ? `${cardColors.check}0a`
+                      : "rgba(255,255,255,0.02)",
+                    transform: (hoveredPlan === plan.name || (!hoveredPlan && isPro))
+                      ? "scale(1.05)"
+                      : hoveredPlan ? "scale(0.97)" : "scale(1)",
+                    transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+                    zIndex: (hoveredPlan === plan.name || (!hoveredPlan && isPro)) ? 10 : 1,
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isPro) {
-                      e.currentTarget.style.borderColor = cardColors.check;
-                      e.currentTarget.style.boxShadow = `0 0 30px ${cardColors.check}20`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isPro) {
-                      e.currentTarget.style.borderColor = cardColors.border;
-                      e.currentTarget.style.boxShadow = "none";
-                    }
-                  }}
+                  onMouseEnter={() => setHoveredPlan(plan.name)}
+                  onMouseLeave={() => setHoveredPlan(null)}
                 >
                   {/* Popular badge */}
                   {isPro && (
