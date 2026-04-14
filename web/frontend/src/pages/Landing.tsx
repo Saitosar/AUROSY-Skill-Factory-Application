@@ -537,11 +537,11 @@ export function LandingPricing() {
 
   return (
     <PageTransition direction="right">
-      <div className="flex h-full items-center px-6 lg:px-12 xl:px-20 py-12">
+      <div className="flex h-full items-center px-6 lg:px-12 xl:px-20 pb-20">
         <div className="max-w-[1100px] mx-auto w-full">
 
           {/* Headline */}
-          <div className="text-center mb-10">
+          <div className="text-center mb-6">
             <h2
               className="text-3xl font-bold mb-3"
               style={{
@@ -559,7 +559,7 @@ export function LandingPricing() {
           </div>
 
           {/* 3 Steps */}
-          <div className="grid grid-cols-3 gap-8 mb-14">
+          <div className="grid grid-cols-3 gap-6 mb-8">
             {[
               { num: "1", label: "Choose a plan", color: "#22d3ee" },
               { num: "2", label: "Create account", color: "#a78bfa" },
@@ -567,7 +567,7 @@ export function LandingPricing() {
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-4">
                 <span
-                  className="text-[42px] font-black font-mono leading-none"
+                  className="text-[32px] font-black font-mono leading-none"
                   style={{
                     backgroundImage: `linear-gradient(135deg, ${step.color}, ${step.color}88)`,
                     WebkitBackgroundClip: "text",
@@ -587,7 +587,7 @@ export function LandingPricing() {
           </div>
 
           {/* Plans */}
-          <div className="grid md:grid-cols-3 gap-6 w-full items-start">
+          <div className="grid md:grid-cols-3 gap-5 w-full items-start">
             {PLANS.map((plan) => {
               const isPro = plan.highlight;
               const cardColors = isPro
@@ -599,7 +599,7 @@ export function LandingPricing() {
               return (
                 <div
                   key={plan.name}
-                  className="relative rounded-2xl p-8 border transition-all group"
+                  className="relative rounded-2xl p-6 border transition-all group"
                   style={{
                     borderColor: cardColors.border,
                     boxShadow: isPro ? `0 0 40px ${cardColors.glow}, 0 0 80px ${cardColors.glow}` : "none",
