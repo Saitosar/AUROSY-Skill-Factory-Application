@@ -250,11 +250,61 @@ function PartnerLogos() {
   );
 }
 
-/* ── Floating badges (like in reference) ── */
-function FloatingBadge({ children, className }: { children: ReactNode; className?: string }) {
+/* ── Tech Badge with typing + connector line ── */
+function TechBadge({ text, prefix, position, lineEnd, delay = 0 }: {
+  text: string;
+  prefix: string;
+  position: string;
+  lineEnd: { x: string; y: string };
+  delay?: number;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [typed, setTyped] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!visible || typed >= text.length) return;
+    const t = setTimeout(() => setTyped((v) => v + 1), 30 + Math.random() * 40);
+    return () => clearTimeout(t);
+  }, [visible, typed, text.length]);
+
   return (
-    <div className={`absolute px-4 py-2 bg-[#1a1f2e]/80 backdrop-blur-md border border-white/10 rounded-xl text-sm text-gray-200 shadow-xl ${className || ""}`}>
-      {children}
+    <div className={`absolute ${position} z-20`} style={{ opacity: visible ? 1 : 0, transition: "opacity 0.6s ease" }}>
+      {/* Connector line */}
+      <svg className="absolute w-full h-full pointer-events-none" style={{ overflow: "visible", top: 0, left: 0 }}>
+        <line
+          x1="0" y1="50%" x2={lineEnd.x} y2={lineEnd.y}
+          stroke="url(#lineGrad)" strokeWidth="1" strokeDasharray="4 3"
+          style={{ opacity: visible ? 0.5 : 0, transition: "opacity 1s ease 0.5s" }}
+        />
+        <circle cx={lineEnd.x} cy={lineEnd.y} r="3" fill="#a855f7" opacity={visible ? 0.8 : 0} style={{ transition: "opacity 1s ease 0.5s" }}>
+          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <defs>
+          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.2" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Badge */}
+      <div className="relative px-4 py-2.5 bg-[#0d1117]/80 backdrop-blur-lg border border-purple-500/20 rounded-lg shadow-[0_0_20px_rgba(168,85,247,0.15)] hover:shadow-[0_0_30px_rgba(168,85,247,0.25)] transition-shadow">
+        <div className="font-mono text-[11px] leading-tight">
+          <span className="text-purple-400/60">{prefix}</span>
+          <span className="text-[#e2e8f0]" style={{ textShadow: "0 0 8px rgba(168,85,247,0.3)" }}>
+            {text.slice(0, typed)}
+          </span>
+          {typed < text.length && (
+            <span className="inline-block w-[5px] h-[13px] bg-cyan-400 ml-[1px] animate-pulse align-middle opacity-80" />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -276,15 +326,27 @@ function RobotVisual() {
       />
 
       {/* Floating badges */}
-      <FloatingBadge className="top-[15%] right-[5%] animate-float-slow">
-        Browser-based simulation
-      </FloatingBadge>
-      <FloatingBadge className="top-[50%] right-[0%] animate-float-medium">
-        29-DoF full body control
-      </FloatingBadge>
-      <FloatingBadge className="bottom-[25%] left-[5%] animate-float-fast">
-        Real-time MuJoCo physics
-      </FloatingBadge>
+      <TechBadge
+        prefix="sim.env = "
+        text='"Browser-based simulation"'
+        position="top-[15%] right-[5%] animate-float-slow"
+        lineEnd={{ x: "-80px", y: "60px" }}
+        delay={800}
+      />
+      <TechBadge
+        prefix="robot.dof = "
+        text='"29-DoF full body control"'
+        position="top-[50%] right-[0%] animate-float-medium"
+        lineEnd={{ x: "-100px", y: "0" }}
+        delay={1600}
+      />
+      <TechBadge
+        prefix="physics = "
+        text='"Real-time MuJoCo engine"'
+        position="bottom-[25%] left-[5%] animate-float-fast"
+        lineEnd={{ x: "100px", y: "-40px" }}
+        delay={2400}
+      />
     </div>
   );
 }
