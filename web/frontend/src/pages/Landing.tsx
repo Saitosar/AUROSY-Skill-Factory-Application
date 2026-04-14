@@ -132,19 +132,43 @@ function LandingNav({ activePath }: { activePath: string }) {
 
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-1">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`px-4 py-2 rounded-lg text-sm font-medium no-underline transition-all duration-200 ${
-                activePath === item.path
-                  ? "text-purple-400 bg-purple-500/10 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                  : "text-gray-400 hover:text-purple-300 hover:bg-white/[0.06] hover:scale-105"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const isActive = activePath === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="px-4 py-2 rounded-lg text-sm font-semibold no-underline transition-all duration-200"
+                style={{
+                  backgroundImage: isActive
+                    ? "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80)"
+                    : "linear-gradient(90deg, #9ca3af, #9ca3af)",
+                  backgroundSize: "100% 100%",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  filter: isActive ? "drop-shadow(0 0 10px rgba(167,139,250,0.4))" : "none",
+                  transition: "all 0.4s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (isActive) return;
+                  e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+                  e.currentTarget.style.backgroundSize = "200% 100%";
+                  e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+                  e.currentTarget.style.filter = "drop-shadow(0 0 10px rgba(167,139,250,0.4))";
+                }}
+                onMouseLeave={(e) => {
+                  if (isActive) return;
+                  e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #9ca3af, #9ca3af)";
+                  e.currentTarget.style.backgroundSize = "100% 100%";
+                  e.currentTarget.style.animation = "none";
+                  e.currentTarget.style.filter = "none";
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Right side */}
