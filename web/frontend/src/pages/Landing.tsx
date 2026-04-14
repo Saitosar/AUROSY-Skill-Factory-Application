@@ -202,7 +202,7 @@ function CodeStream() {
   }, [visibleLines, charIndex]);
 
   return (
-    <div className="absolute bottom-16 right-0 w-1/2 h-[160px] z-[5] pointer-events-none overflow-hidden">
+    <div className="absolute bottom-0 left-0 right-0 h-[160px] z-[5] pointer-events-none overflow-hidden">
       {/* Fade top edge */}
       <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-[#0B0F14] to-transparent z-10" />
       {/* Fade bottom edge */}
@@ -340,6 +340,7 @@ export function LandingHome() {
         {/* Right — Robot visual */}
         <div className="hidden lg:flex flex-1 items-center justify-center relative">
           <RobotVisual />
+          <CodeStream />
         </div>
       </div>
     </PageTransition>
@@ -598,9 +599,6 @@ export default function LandingLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 pt-20 pb-16 relative z-10">
         {children}
       </div>
-
-      {/* Code stream animation */}
-      <CodeStream />
 
       {/* Partner logos */}
       <PartnerLogos />
