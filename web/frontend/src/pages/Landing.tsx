@@ -44,32 +44,14 @@ function UserButton() {
 
   if (!user) {
     return (
-      <Link
-        to="/pricing"
-        className="group text-sm font-bold tracking-tight transition-all"
-        style={{
-          backgroundImage: "linear-gradient(90deg, #a78bfa, #a78bfa)",
-          backgroundSize: "100% 100%",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          transition: "all 0.4s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
-          e.currentTarget.style.backgroundSize = "200% 100%";
-          e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
-          e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(167,139,250,0.5))";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #a78bfa, #a78bfa)";
-          e.currentTarget.style.backgroundSize = "100% 100%";
-          e.currentTarget.style.animation = "none";
-          e.currentTarget.style.filter = "none";
-        }}
+      <button
+        className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-all"
       >
-        Start Building
-      </Link>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </button>
     );
   }
 
@@ -172,7 +154,49 @@ function LandingNav({ activePath }: { activePath: string }) {
         </nav>
 
         {/* Right side */}
-        <UserButton />
+        <div className="flex items-center gap-4">
+          {/* Notification bell */}
+          <button className="relative w-9 h-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.08] transition-all">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </button>
+
+          {/* User icon */}
+          <UserButton />
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/10" />
+
+          {/* Start Building */}
+          <Link
+            to="/pricing"
+            className="text-sm font-bold tracking-tight transition-all no-underline"
+            style={{
+              backgroundImage: "linear-gradient(90deg, #a78bfa, #a78bfa)",
+              backgroundSize: "100% 100%",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              transition: "all 0.4s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #22d3ee, #a78bfa, #4ade80, #fbbf24, #e879f9)";
+              e.currentTarget.style.backgroundSize = "200% 100%";
+              e.currentTarget.style.animation = "shimmer-text 2s linear infinite";
+              e.currentTarget.style.filter = "drop-shadow(0 0 12px rgba(167,139,250,0.5))";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundImage = "linear-gradient(90deg, #a78bfa, #a78bfa)";
+              e.currentTarget.style.backgroundSize = "100% 100%";
+              e.currentTarget.style.animation = "none";
+              e.currentTarget.style.filter = "none";
+            }}
+          >
+            Start Building
+          </Link>
+        </div>
       </div>
     </header>
   );
