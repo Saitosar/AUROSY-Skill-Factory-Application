@@ -297,10 +297,7 @@ function applyAutoBalance(data: MuJoCoData): void {
   const ankleAdj = cl(corr);
   const hipAdj   = cl(corr * BAL.hipRatio);
 
-  // Debug: log every ~60 frames (1/sec)
-  if (Math.random() < 0.017) {
-    console.log(`[BAL] z=${pz.toFixed(3)} pitch=${(pitch*180/Math.PI).toFixed(1)}° corr=${corr.toFixed(4)} ankle=${ankleAdj.toFixed(4)} hip=${hipAdj.toFixed(4)}`);
-  }
+
 
   // Read user targets and add corrections
   const lap = qposVecGet(ctrl, L_ANKLE_PITCH) ?? 0;
